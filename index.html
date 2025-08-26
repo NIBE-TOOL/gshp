@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simulateur d’aide & reste à charge — PAC géothermique NIBE</title>
+  <style>
+    :root{--bg:#ffffff;--panel:#ffffff;--line:#e5e7eb;--text:#0f172a;--muted:#64748b;--accent:#1d4ed8;--good:#059669;--danger:#b91c1c}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial}
+    .wrap{max-width:1120px;margin:28px auto;padding:0 16px 48px}
+    header{margin-bottom:8px}
+    h1{margin:0 0 6px;font-size:clamp(1.3rem,1rem + 2vw,2rem)}
+    h2{margin:8px 0 12px;font-size:1.15rem}
+    .sub{color:var(--muted)}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,.04);margin:12px 0}
+    .grid{display:grid;gap:14px}
+    .g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .g-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    @media (max-width:980px){.g-2,.g-3{grid-template-columns:1fr}}
+    label{font-weight:600;font-size:.95rem}
+    small,.muted{color:var(--muted)}
+    input[type=text],input[type=email],input[type=number],textarea,select{background:#fff;border:1px solid #cbd5e1;color:var(--text);border-radius:10px;padding:10px 12px;outline:none;transition:border .2s,box-shadow .2s;width:100%}
+    textarea{min-height:72px;resize:vertical}
+    input:focus,textarea:focus,select:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.18)}
+    .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .checkbox{display:flex;align-items:center;gap:10px}
+    .actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    button{border:1px solid #cbd5e1;background:#f8fafc;color:#0f172a;border-radius:10px;padding:10px 14px;font-weight:700;letter-spacing:.2px;cursor:pointer;transition:transform .06s ease,box-shadow .2s,border .2s}
+    button:hover{box-shadow:0 4px 16px rgba(2,8,23,.1)}
+    button:active{transform:translateY(1px)}
+    .btn-primary{background:#2563eb;color:#fff;border-color:#2563eb}
+    table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+    th,td{border-bottom:1px solid var(--line);padding:6px 8px;line-height:1.25;text-align:left}
+    th{font-size:.9rem;color:#0f172a;font-weight:700;background:#f8fafc}
+    td.right{text-align:right;font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1}
+
+    /* ===== Gabarit LETTRE A4 imprimable ===== */
+    #rapport-letter{display:none}
+    #rapport-letter .a4{width:210mm;min-height:297mm;background:#fff;color:#111827;padding:18mm;border:1px solid #e5e7eb;margin:auto}
+    #addr{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-bottom:8mm}
+    #addr .block{font-size:12px;line-height:1.35;white-space:pre-line}
+    #addr .right{justify-self:end;text-align:right}
+    .resume{margin:4mm 0 6mm;border-top:1px solid #e5e7eb;padding-top:6mm}
+    .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:4mm;margin:2mm 0 6mm;align-items:stretch}
+    .kpi .tile{border:1px solid #e5e7eb;border-radius:10px;padding:6mm;display:flex;flex-direction:column;justify-content:space-between}
+    .kpi .lab{font-size:12px;color:#475569}
+    .kpi .val{font-size:18px;font-weight:800;text-align:right;line-height:1.1;min-height:22px;font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1}
+    .kpi .tile.aides{border-color:#c7d2fe;background:#eef2ff}
+    .kpi .tile.aides .val{color:#1d4ed8}
+    .tbl{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
+    .tbl th,.tbl td{padding:6px 8px;line-height:1.25}
+    tr.total-aides td{background:#eef2ff;border-bottom-color:#c7d2fe}
+    tr.total-aides td:last-child{font-weight:800;color:#1d4ed8}
+    tr.total-rac td:last-child{font-weight:900}
+    .pv-green{color:var(--good);font-weight:800}
+    .footer-note{font-size:10px;color:#475569;margin-top:6mm}
+
+    @page{size:A4;margin:14mm}
+    @media print{
+      body{background:#fff}
+      .no-print{display:none!important}
+      #rapport-letter{display:block}
+      .a4{border:0}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap no-print">
+    <header>
+      <h1>Simulateur d’aide & reste à charge — PAC géothermique <b>NIBE</b></h1>
+      <div class="sub">Monogeste : remplacement d’une chaudière gaz/fioul par une PAC géothermique NIBE</div>
+    </header>
+
+    <!-- 1. INSTALLATEUR -->
+    <section class="card" id="installateur">
+      <h2>Informations installateur</h2>
+      <div class="grid g-2">
+        <div>
+          <label for="inst-raison">Raison sociale (optionnel)</label>
+          <input id="inst-raison" type="text" placeholder="Ex. SARL Dupont Énergie">
+        </div>
+        <div>
+          <label for="inst-siret">SIRET <span style="color:#b91c1c">*</span></label>
+          <input id="inst-siret" type="text" placeholder="14 chiffres" pattern="^[0-9]{14}$" required>
+          <small>Format : 14 chiffres</small>
+        </div>
+        <div>
+          <label for="inst-email">E‑mail <span style="color:#b91c1c">*</span></label>
+          <input id="inst-email" type="email" placeholder="nom@domaine.fr" required>
+        </div>
+        <div>
+          <label for="inst-tel">Téléphone (optionnel)</label>
+          <input id="inst-tel" type="text" placeholder="Ex. 06 12 34 56 78">
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. CLIENT -->
+    <section class="card" id="client">
+      <h2>Informations client final</h2>
+      <div class="grid g-2">
+        <div>
+          <label for="cli-nom">Nom <span style="color:#b91c1c">*</span></label>
+          <input id="cli-nom" type="text" required>
+        </div>
+        <div>
+          <label for="cli-prenom">Prénom <span style="color:#b91c1c">*</span></label>
+          <input id="cli-prenom" type="text" required>
+        </div>
+        <div>
+          <label for="cli-email">E‑mail <span style="color:#b91c1c">*</span></label>
+          <input id="cli-email" type="email" placeholder="client@exemple.fr" required>
+        </div>
+        <div>
+          <label for="cli-adresse">Adresse du chantier <span style="color:#b91c1c">*</span></label>
+          <textarea id="cli-adresse" placeholder="N°, Rue, Code postal, Ville" required></textarea>
+        </div>
+      </div>
+      <div class="grid g-3" style="margin-top:8px">
+        <div>
+          <label>Type de logement</label>
+          <div class="row">
+            <label class="checkbox"><input type="radio" name="type-log" value="Maison individuelle" checked> Maison individuelle</label>
+            <label class="checkbox"><input type="radio" name="type-log" value="Appartement (logement individuel)"> Appartement (logement individuel)</label>
+          </div>
+        </div>
+        <div>
+          <label>Logement individuel</label>
+          <div class="row">
+            <label class="checkbox"><input type="radio" name="log-indiv" value="Oui" checked> Oui</label>
+            <label class="checkbox"><input type="radio" name="log-indiv" value="Non"> Non</label>
+          </div>
+        </div>
+        <div>
+          <label>Résidence principale</label>
+          <div class="row">
+            <label class="checkbox"><input type="radio" name="res-primary" value="Oui" checked> Oui</label>
+            <label class="checkbox"><input type="radio" name="res-primary" value="Non"> Non</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. ÉLIGIBILITÉ + MÉNAGE -->
+    <section class="card" id="eligibilite">
+      <h2>Hypothèses & critères d’éligibilité</h2>
+      <div class="grid g-2">
+        <div>
+          <div class="checkbox"><input id="c1" type="checkbox" checked> <label for="c1">Remplacement d’une chaudière gaz/fioul par <b>PAC géothermique NIBE</b></label></div>
+          <div class="checkbox"><input id="c2" type="checkbox" checked> <label for="c2">Entreprise <b>RGE</b> (catégorie PAC géothermique)</label></div>
+          <div class="checkbox"><input id="c3" type="checkbox" checked> <label for="c3">Logement de <b>plus de 15 ans</b> (si règle applicable)</label></div>
+          <div class="checkbox"><input id="c4" type="checkbox" checked> <label for="c4">Dossiers <b>déposés avant travaux</b></label></div>
+        </div>
+        <div class="grid">
+          <div>
+            <label for="menage-nb">Nombre de personnes dans le ménage <span style="color:#b91c1c">*</span></label>
+            <input id="menage-nb" type="number" min="1" step="1" value="2" required>
+          </div>
+          <div>
+            <label for="rfr">Revenu fiscal de référence du foyer (€) <span style="color:#b91c1c">*</span></label>
+            <input id="rfr" type="number" min="0" step="100" placeholder="Ex. 80 000" required>
+          </div>
+          <div>
+            <label for="region">Région de barème</label>
+            <select id="region">
+              <option value="hors_idf" selected>Hors Île‑de‑France</option>
+              <option value="idf">Île‑de‑France</option>
+            </select>
+            <small class="muted">Par défaut : Hors Île‑de‑France.</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. SYSTÈME -->
+    <section class="card" id="systeme">
+      <h2>Choix du système</h2>
+      <div class="grid">
+        <div>
+          <label for="type-pac">Type de PAC géothermique NIBE</label>
+          <select id="type-pac">
+            <option value="sol_eau_horizontaux">Sol/Eau — capteurs horizontaux</option>
+            <option value="sol_eau_vertical">Sol/Eau — sondes verticales (forage)</option>
+            <option value="eau_eau">Eau/Eau — nappe / aquifère</option>
+          </select>
+          <small class="muted">Les C2E/MPR peuvent varier selon le type. Ici, calcul monogeste standard.</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. COÛTS -->
+    <section class="card" id="couts">
+      <h2>Coûts du projet (TTC)</h2>
+      <div class="grid g-2">
+        <div>
+          <label for="pac-fourn">PAC NIBE — Fourniture (€)</label>
+          <input id="pac-fourn" type="number" min="0" step="100" placeholder="Ex. 15 000">
+        </div>
+        <div>
+          <label for="pac-mdo">PAC NIBE — Main d’œuvre (€)</label>
+          <input id="pac-mdo" type="number" min="0" step="100" placeholder="Ex. 3 000">
+        </div>
+        <div>
+          <label for="capt-fourn">Captage — Fourniture (€)</label>
+          <input id="capt-fourn" type="number" min="0" step="100" placeholder="Ex. 8 000">
+        </div>
+        <div>
+          <label for="capt-mdo">Captage — Pose (€)</label>
+          <input id="capt-mdo" type="number" min="0" step="100" placeholder="Ex. 3 500">
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. REMPLACEMENT IDENTIQUE -->
+    <section class="card" id="base">
+      <h2>Estimation « remplacement à l’identique » (chaudière gaz/fioul)</h2>
+      <div class="grid g-2">
+        <div>
+          <label for="base-remplacement">Facture totale estimée (fourniture + main d’œuvre) — TTC (€)</label>
+          <input id="base-remplacement" type="number" min="0" step="100" placeholder="Ex. 6 500">
+        </div>
+      </div>
+      <small class="muted">Permet de mesurer la plus‑value d’une PAC NIBE vs un remplacement standard.</small>
+    </section>
+
+    <!-- 7. AIDES -->
+    <section class="card" id="aides">
+      <h2>Aides</h2>
+      <div class="grid g-2">
+        <div>
+          <label for="profil-mpr">Profil MaPrimeRénov’</label>
+          <select id="profil-mpr">
+            <option value="auto" selected>Auto (selon RFR, ménage, région)</option>
+            <option value="tres_modestes">Très modestes</option>
+            <option value="modestes">Modestes</option>
+            <option value="intermediaires">Intermédiaires</option>
+            <option value="superieurs">Supérieurs (non éligible)</option>
+          </select>
+          <small id="mpr-suggestion" class="muted">Suggestion : —</small>
+        </div>
+        <div class="grid g-2">
+          <div>
+            <label for="mpr-tm">Forfait très modestes (€)</label>
+            <input id="mpr-tm" type="number" min="0" step="50" value="11000">
+          </div>
+          <div>
+            <label for="mpr-mo">Forfait modestes (€)</label>
+            <input id="mpr-mo" type="number" min="0" step="50" value="9000">
+          </div>
+          <div>
+            <label for="mpr-int">Forfait intermédiaires (€)</label>
+            <input id="mpr-int" type="number" min="0" step="50" value="6000">
+          </div>
+          <div>
+            <label for="mpr-sup">Forfait supérieurs (€)</label>
+            <input id="mpr-sup" type="number" min="0" step="50" value="0">
+          </div>
+        </div>
+      </div>
+      <div class="grid g-2" style="margin-top:8px">
+        <div>
+          <div class="checkbox"><input id="cee-edf-override" type="checkbox" checked> <label for="cee-edf-override"><b>bonus de la Prime énergie d’EDF</b> : appliquer un montant forfaitaire de <b>5 150 €</b></label></div>
+        </div>
+        <div>
+          <label for="cee-montant">(Sinon) Montant C2E estimé (€) — saisir le montant obtenu</label>
+          <input id="cee-montant" type="number" min="0" step="50" placeholder="Ex. 5 200">
+          <small class="muted">Ou utilisez l’option kWh cumac × €/MWhc ci‑dessous.</small>
+        </div>
+        <div>
+          <label>(Option) via kWh cumac</label>
+          <div class="grid g-2">
+            <input id="cee-kwh" type="number" min="0" step="1000" placeholder="kWh cumac">
+            <input id="cee-prix" type="number" min="0" step="1" placeholder="€/MWhc">
+          </div>
+          <small class="muted">Calcul : (kWh cumac ÷ 1000) × €/MWhc.</small>
+        </div>
+      </div>
+    </section>
+
+    <div class="actions" style="margin-top:8px">
+      <button class="btn-primary" id="btn-calc">Calculer</button>
+      <button id="btn-print">Générer le PDF (A4, 1 page)</button>
+      <small class="muted">Le PDF inclura la mention « Estimation non engageante » et « Période ciblée : 01/09/2025 → 31/12/2025 » en pied de page.</small>
+    </div>
+  </div>
+
+  <!-- ======= RAPPORT LETTRE A4 ======= -->
+  <section id="rapport-letter">
+    <div class="a4">
+      <div id="addr">
+        <div class="block" id="addr-installateur">—</div>
+        <div class="block right" id="addr-client">—</div>
+      </div>
+
+      <h2 style="text-align:center;margin:0 0 4mm">Résultat de simulation — PAC géothermique NIBE</h2>
+      <div class="resume">
+        <div class="kpi">
+          <div class="tile"><div class="lab">Total projet TTC</div><div class="val" id="k-total">0 €</div></div>
+          <div class="tile aides"><div class="lab">Total des aides (MPR + C2E)</div><div class="val" id="k-aides">0 €</div></div>
+          <div class="tile"><div class="lab">Reste à charge</div><div class="val" id="k-rac">0 €</div></div>
+          <div class="tile"><div class="lab">Plus‑value vs remplacement</div><div class="val pv-green" id="k-plus">0 €</div></div>
+        </div>
+      </div>
+
+      <div class="tbl">
+        <table>
+          <thead>
+            <tr><th>Élément</th><th>Détails</th><th class="right">Montant (€)</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Coût PAC NIBE (fourniture + pose)</td>
+              <td id="r-pac-detail">—</td>
+              <td class="right" id="r-pac">0</td>
+            </tr>
+            <tr>
+              <td>Coût captage (selon type)</td>
+              <td id="r-capt-detail">—</td>
+              <td class="right" id="r-capt">0</td>
+            </tr>
+            <tr>
+              <td><b>Total projet TTC</b></td>
+              <td>PAC + captage</td>
+              <td class="right" id="r-total">0</td>
+            </tr>
+            <tr>
+              <td>MaPrimeRénov’ estimée</td>
+              <td id="r-mpr-detail">Profil : —</td>
+              <td class="right" id="r-mpr">0</td>
+            </tr>
+            <tr>
+              <td>Prime C2E estimée</td>
+              <td id="r-cee-detail">—</td>
+              <td class="right" id="r-cee">0</td>
+            </tr>
+            <tr class="total-aides">
+              <td><b>Total des aides estimées</b></td>
+              <td>MPR + C2E</td>
+              <td class="right" id="r-aides">0</td>
+            </tr>
+            <tr class="total-rac">
+              <td><b>Reste à charge</b></td>
+              <td>Total projet − Total aides</td>
+              <td class="right" id="r-rac2"><b>0</b></td>
+            </tr>
+            <tr>
+              <td>Coût « remplacement à l’identique »</td>
+              <td>Chaudière gaz/fioul</td>
+              <td class="right" id="r-base">0</td>
+            </tr>
+            <tr>
+              <td><b>Plus‑value vs remplacement</b></td>
+              <td>Reste à charge − Coût remplacement</td>
+              <td class="right pv-green" id="r-plusvalue">0</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="footer-note">
+        <p><b>Mentions :</b> Estimation non engageante. Les montants définitifs dépendent des justificatifs, des critères techniques et des validations (ANAH pour MaPrimeRénov’, délégataire C2E). Dossiers à déposer avant travaux. <br> Période ciblée : <b>01/09/2025 → 31/12/2025</b>. Type : monogeste (remplacement chaudière gaz/fioul par PAC géothermique NIBE).</p>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // ===== Barèmes MPR (à ajuster selon barèmes officiels 2025 si besoin) =====
+    const thresholds={
+      hors_idf:{
+        1:{tm:16000,mo:20593,int:29148},
+        2:{tm:23655,mo:30225,int:42848},
+        3:{tm:28400,mo:36297,int:51293},
+        4:{tm:33145,mo:42371,int:59738},
+        5:{tm:37899,mo:48454,int:68181}
+      },
+      idf:{
+        1:{tm:21411,mo:27656,int:38184},
+        2:{tm:31441,mo:40544,int:56238},
+        3:{tm:37793,mo:48731,int:67673},
+        4:{tm:44145,mo:56927,int:79110},
+        5:{tm:50497,mo:65123,int:90547}
+      }
+    };
+
+    function getMPRForfaits(){
+      return {
+        tres_modestes:Number(document.getElementById('mpr-tm').value||0),
+        modestes:Number(document.getElementById('mpr-mo').value||0),
+        intermediaires:Number(document.getElementById('mpr-int').value||0),
+        superieurs:Number(document.getElementById('mpr-sup').value||0)
+      };
+    }
+    function fmtEuro(n){try{return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n||0);}catch(e){return (n||0).toFixed(0)+' €';}}
+    function valNum(id){const el=document.getElementById(id);const v=parseFloat((el?.value??el?.textContent??'0').toString().replace(/[^0-9.-]/g,''));return isNaN(v)?0:v;}
+
+    function autoProfil(region,taille,rfr){
+      const row=(thresholds[region]||{})[Math.min(5,Math.max(1,taille))];
+      if(!row){return{profil:'intermediaires',via:'barèmes à confirmer'};}
+      if(rfr<=row.tm)return{profil:'tres_modestes',via:`≤ TM (${row.tm})`};
+      if(rfr<=row.mo)return{profil:'modestes',via:`≤ MO (${row.mo})`};
+      if(rfr<=row.int)return{profil:'intermediaires',via:`≤ INT (${row.int})`};
+      return{profil:'superieurs',via:`> INT (${row.int})`};
+    }
+
+    function getProfil(){
+      const select=document.getElementById('profil-mpr').value;
+      if(select!=='auto')return{profil:select,via:'sélection manuelle'};
+      const rfr=valNum('rfr');
+      const taille=Math.max(1,parseInt(document.getElementById('menage-nb').value||'1',10));
+      const region=document.getElementById('region').value;
+      return autoProfil(region,taille,rfr);
+    }
+
+    function calcCEE(){
+      // Bonus EDF par défaut si coché
+      const edf=document.getElementById('cee-edf-override');
+      if(edf && edf.checked){return 5150;}
+      let cee=valNum('cee-montant');
+      const kwhc=valNum('cee-kwh');
+      const prix=valNum('cee-prix');
+      if((!cee||cee===0)&&kwhc>0&&prix>0){cee=(kwhc/1000)*prix;}
+      return Math.max(0,cee||0);
+    }
+
+    function calculer(){
+      const pac=valNum('pac-fourn')+valNum('pac-mdo');
+      const capt=valNum('capt-fourn')+valNum('capt-mdo');
+      const total=pac+capt;
+
+      const {profil,via}=getProfil();
+      const forfaits=getMPRForfaits();
+      const mpr=forfaits[profil]||0;
+      const cee=calcCEE();
+      const totalAides=mpr+cee;
+
+      const base=valNum('base-remplacement');
+      const rac=Math.max(0,total-totalAides);
+      const plusvalue=rac-base; // Couleur imposée verte (pv-green)
+
+      // Renseignements détaillés
+      document.getElementById('r-pac-detail').textContent=`Fourniture ${fmtEuro(valNum('pac-fourn'))} + MO ${fmtEuro(valNum('pac-mdo'))}`;
+      document.getElementById('r-capt-detail').textContent=`${document.getElementById('type-pac').selectedOptions[0].text} — Fourniture ${fmtEuro(valNum('capt-fourn'))} + Pose ${fmtEuro(valNum('capt-mdo'))}`;
+
+      // Tableau
+      document.getElementById('r-pac').textContent=fmtEuro(pac);
+      document.getElementById('r-capt').textContent=fmtEuro(capt);
+      document.getElementById('r-total').textContent=fmtEuro(total);
+      document.getElementById('r-mpr-detail').textContent=`Profil : ${profil.replace('_',' ')} (${via})`;
+      document.getElementById('r-mpr').textContent=fmtEuro(mpr);
+      document.getElementById('r-cee-detail').textContent=(document.getElementById('cee-edf-override')?.checked)?'bonus EDF appliqué':(cee>0?'Saisi / calculé':'—');
+      document.getElementById('r-cee').textContent=fmtEuro(cee);
+      document.getElementById('r-aides').textContent=fmtEuro(totalAides);
+      document.getElementById('r-rac2').innerHTML='<b>'+fmtEuro(rac)+'</b>';
+      document.getElementById('r-base').textContent=fmtEuro(base);
+      const pv=document.getElementById('r-plusvalue'); pv.textContent=fmtEuro(plusvalue); pv.classList.add('pv-green');
+
+      // KPIs
+      document.getElementById('k-total').textContent=fmtEuro(total);
+      document.getElementById('k-aides').textContent=fmtEuro(totalAides);
+      document.getElementById('k-rac').textContent=fmtEuro(rac);
+      document.getElementById('k-plus').textContent=fmtEuro(plusvalue);
+
+      // Adresses pour l’entête lettre
+      const inst=[
+        document.getElementById('inst-raison').value,
+        'SIRET : '+(document.getElementById('inst-siret').value||''),
+        document.getElementById('inst-email').value,
+        document.getElementById('inst-tel').value
+      ].filter(Boolean).join('\n');
+      const cli=[
+        `${document.getElementById('cli-prenom').value||''} ${document.getElementById('cli-nom').value||''}`.trim(),
+        document.getElementById('cli-adresse').value,
+        document.getElementById('cli-email').value
+      ].filter(Boolean).join('\n');
+      document.getElementById('addr-installateur').textContent=inst||'—';
+      document.getElementById('addr-client').textContent=cli||'—';
+
+      // Suggestion profil (affichage dans le formulaire)
+      const s=getProfil();
+      document.getElementById('mpr-suggestion').textContent=`Suggestion : ${s.profil.replace('_',' ')} ${s.via?(' '+s.via):''}`;
+
+      // Vérification champs clés
+      const required=['inst-siret','inst-email','cli-nom','cli-prenom','cli-email','cli-adresse'];
+      const missing=required.filter(id=>!document.getElementById(id).checkValidity());
+      if(missing.length){alert('Merci de compléter les champs obligatoires (installateur et client).');}
+    }
+
+    document.getElementById('btn-calc').addEventListener('click',e=>{e.preventDefault();calculer();});
+    document.getElementById('btn-print').addEventListener('click',e=>{e.preventDefault();calculer();window.print();});
+    document.getElementById('inst-siret').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D+/g,'').slice(0,14);});
+  </script>
+</body>
+</html>
