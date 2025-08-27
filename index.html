@@ -7,29 +7,26 @@
   <style>
     :root{
       --bg:#f7fafc;--panel:#ffffff;--ink:#0f172a;--muted:#64748b;--line:#e5e7eb;
-      --primary:#c20f0f; /* NIBE red */
-      --primary-weak:#fde7e7;--good:#059669;--shadow:0 10px 30px rgba(2,8,23,.08)
+      --primary:#c20f0f; --good:#059669; --warn:#b45309; --shadow:0 10px 30px rgba(2,8,23,.08)
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial}
 
-    /* ====== Header (sans logo) ====== */
     .topbar{position:sticky;top:0;z-index:40;background:linear-gradient(180deg,#fff 0%,#fff 70%,transparent 100%);border-bottom:1px solid var(--line)}
     .topbar-inner{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
     .brand h1{margin:0;font-size:clamp(1.1rem,1rem + .8vw,1.6rem);font-weight:800;letter-spacing:.2px}
 
-    /* ====== Layout ====== */
     .wrap{max-width:1100px;margin:22px auto;padding:0 16px 80px}
     .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);margin:16px 0}
     h2{margin:0 0 10px;font-size:1.15rem}
     label{font-weight:650}
-    input,select,textarea{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:12px;background:#fff}
-    input:focus,select:focus,textarea:focus{outline:none;box-shadow:0 0 0 3px rgba(194,15,15,.18);border-color:#f5b3b3}
+    input,select{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:12px;background:#fff}
+    input:focus,select:focus{outline:none;box-shadow:0 0 0 3px rgba(194,15,15,.18);border-color:#f5b3b3}
     .row{display:flex;gap:14px;flex-wrap:wrap}
     .half{flex:1 1 320px}
-  
-    /* ===== Buttons ===== */
+    .muted{color:#64748b}
+
     .actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
     .btn{border:1px solid #cbd5e1;background:#fff;color:var(--ink);border-radius:12px;padding:10px 16px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(2,8,23,.06);transition:transform .06s ease,box-shadow .2s,border .2s}
     .btn:hover{box-shadow:0 8px 18px rgba(2,8,23,.12)}
@@ -37,7 +34,6 @@
     .btn.ghost{background:transparent}
     .btn:disabled{opacity:.6;cursor:not-allowed}
 
-    /* ===== Wizard ===== */
     .wizard-head{display:flex;align-items:center;gap:12px;margin:8px 0}
     .step-title{font-weight:800;color:#0f172a}
     .progressbar{position:relative;flex:1;height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden}
@@ -46,34 +42,45 @@
     .step{display:none;opacity:0;transform:translateY(10px);transition:opacity .35s ease,transform .35s ease}
     .step.active{display:block;opacity:1;transform:translateY(0)}
 
-    /* ===== Choices with icons ===== */
     .choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
     .choice{display:flex;align-items:center;gap:12px;border:1px solid #d1d5db;border-radius:14px;padding:12px;cursor:pointer;transition:border .2s,box-shadow .2s;background:#fff}
     .choice:hover{box-shadow:0 8px 18px rgba(2,8,23,.12)}
     .choice input{margin:0}
     .choice .icon{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center}
     .choice .lbl{font-weight:700}
-    .muted{color:#64748b}
 
-    /* ===== Rapport A4 ===== */
+    .checklist{display:grid;gap:10px}
+    .check{display:flex;align-items:flex-start;gap:10px}
+    .check input[type=checkbox]{width:18px;height:18px;accent-color:var(--primary);margin:2px 0 0 0}
+    .check .txt{line-height:1.35}
+
+    /* Résultat live (smartphone) */
+    #live{display:none}
+    .kpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .tile{border:1px solid #e5e7eb;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
+    .tile .lab{font-size:.92rem;color:#475569}
+    .tile .val{font-size:1.2rem;font-weight:900;text-align:right;font-variant-numeric:tabular-nums}
+    .tile.aides{background:#eef2ff;border-color:#c7d2fe}
+    .tile.aides .val{color:#1d4ed8}
+    .pv-green{color:var(--good);font-weight:800}
+    .warn{background:#fff7ed;border:1px solid #fed7aa;color:#b45309;border-radius:12px;padding:10px 12px}
+
+    table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
+    th,td{border-bottom:1px solid #e5e7eb;padding:6px 8px;text-align:left}
+    td.right{text-align:right;font-variant-numeric:tabular-nums}
+
+    /* Rapport A4 (print) */
     #rapport-letter{display:none}
     #rapport-letter .a4{width:210mm;min-height:297mm;background:#fff;color:#111827;padding:16mm 18mm;border:1px solid #e5e7eb;margin:auto}
     #addr{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-bottom:6mm}
     #addr .block{font-size:12px;line-height:1.35;white-space:pre-line}
     #addr .right{text-align:right}
-    .kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:4mm;margin:4mm 0 6mm;align-items:stretch}
-    .tile{border:1px solid #e5e7eb;border-radius:10px;padding:6mm;display:flex;flex-direction:column;justify-content:space-between;min-height:42mm}
-    .lab{font-size:12px;color:#475569}
-    .val{font-size:18px;font-weight:900;text-align:right;font-variant-numeric:tabular-nums;line-height:1.1}
-    .tile.aides{background:#eef2ff;border-color:#c7d2fe}
-    .tile.aides .val{color:#1d4ed8}
-    table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
-    th,td{border-bottom:1px solid #e5e7eb;padding:6px 8px;text-align:left}
-    td.right{text-align:right;font-variant-numeric:tabular-nums}
-    tr.total-aides td{background:#eef2ff}
-    tr.total-aides td:last-child{color:#1d4ed8;font-weight:800}
-    tr.total-rac td:last-child{font-weight:900}
-    .pv-green{color:var(--good);font-weight:800}
+    .kpi-print{display:grid;grid-template-columns:repeat(5,1fr);gap:4mm;margin:4mm 0 6mm;align-items:stretch}
+    .tile-print{border:1px solid #e5e7eb;border-radius:10px;padding:6mm;display:flex;flex-direction:column;justify-content:space-between;min-height:42mm}
+    .lab-print{font-size:12px;color:#475569}
+    .val-print{font-size:18px;font-weight:900;text-align:right;font-variant-numeric:tabular-nums;line-height:1.1}
+    .tile-print.aides{background:#eef2ff;border-color:#c7d2fe}
+    .tile-print.aides .val-print{color:#1d4ed8}
     .fine{font-size:10px;color:#475569;margin-top:6mm}
     @page{size:A4;margin:14mm}
     @media print{.no-print{display:none!important}#rapport-letter{display:block}.a4{border:0}}
@@ -82,21 +89,17 @@
 <body>
   <div class="topbar no-print">
     <div class="topbar-inner">
-      <div class="brand">
-        <h1>Simulateur — PAC géothermique <b>NIBE</b></h1>
-      </div>
+      <div class="brand"><h1>Simulateur — PAC géothermique <b>NIBE</b></h1></div>
     </div>
   </div>
 
   <div class="wrap no-print">
-    <!-- Wizard header -->
     <div class="card wizard-head">
       <div class="step-title" id="step-title">Étape 1 · Installateur</div>
       <div class="progressbar" aria-hidden="true"><div class="bar" id="bar"></div></div>
       <div class="progress-info" id="progress-info">0%</div>
     </div>
 
-    <!-- WIZARD -->
     <form id="wizard" novalidate>
       <!-- 1. INSTALLATEUR -->
       <section class="card step active" data-title="Installateur">
@@ -119,15 +122,13 @@
           <div class="half"><label for="cli-prenom">Prénom</label><input id="cli-prenom" required/></div>
           <div class="half"><label for="cli-email">E-mail</label><input id="cli-email" type="email" required placeholder="client@exemple.fr"/></div>
           <div class="half"><label for="cli-adresse">Adresse du chantier</label>
-            <input id="cli-adresse" required
-              pattern="^\d+\s+.+\s+\d{5}\s+.+$"
-              title="Format attendu : N° Rue CP Ville"
-              placeholder="12 rue des Fleurs 75010 Paris"/></div>
+            <input id="cli-adresse" required placeholder="Ex. 12 rue des Fleurs 75010 Paris / ou autre format libre"/>
+          </div>
         </div>
         <div class="actions"><button type="button" class="btn ghost" data-prev>Précédent</button><button type="button" class="btn primary" data-next>Suivant</button></div>
       </section>
 
-      <!-- 3. TYPE DE LOGEMENT (fusion avec logement individuel) -->
+      <!-- 3. TYPE DE LOGEMENT -->
       <section class="card step" data-title="Type de logement">
         <h2>Type de logement (logement individuel si maison)</h2>
         <div class="choices">
@@ -141,7 +142,6 @@
             </span>
             <span class="lbl">Maison individuelle <span class="muted">(logement individuel)</span></span>
           </label>
-
           <label class="choice">
             <input type="radio" name="type-log" value="Appartement"/>
             <span class="icon" aria-hidden="true">
@@ -169,10 +169,12 @@
       <!-- 5. HYPOTHÈSES -->
       <section class="card step" data-title="Hypothèses">
         <h2>Hypothèses & critères d’éligibilité</h2>
-        <label><input id="c1" type="checkbox" checked/> Remplacement d’une chaudière gaz/fioul par PAC géothermique NIBE</label><br/>
-        <label><input id="c2" type="checkbox" checked/> Travaux réalisés par une entreprise RGE (PAC géothermique)</label><br/>
-        <label><input id="c3" type="checkbox" checked/> Logement de plus de 15 ans</label><br/>
-        <label><input id="c4" type="checkbox" checked/> Dossiers déposés avant travaux</label>
+        <div class="checklist">
+          <label class="check"><input id="c1" type="checkbox" checked/><span class="txt">Remplacement d’une chaudière gaz/fioul par PAC géothermique NIBE</span></label>
+          <label class="check"><input id="c2" type="checkbox" checked/><span class="txt">Travaux réalisés par une entreprise RGE (PAC géothermique)</span></label>
+          <label class="check"><input id="c3" type="checkbox" checked/><span class="txt">Logement de plus de 15 ans</span></label>
+          <label class="check"><input id="c4" type="checkbox" checked/><span class="txt">Dossiers déposés avant travaux</span></label>
+        </div>
         <div class="actions"><button type="button" class="btn ghost" data-prev>Précédent</button><button type="button" class="btn primary" data-next>Suivant</button></div>
       </section>
 
@@ -244,8 +246,38 @@
       </section>
     </form>
 
+    <!-- Résultat LIVE (sans PDF) -->
+    <div class="card" id="live">
+      <h2>Résultat de simulation (aperçu)</h2>
+      <div id="elig-msg" class="warn" style="display:none"></div>
+      <div class="kpi" style="margin-top:8px">
+        <div class="tile"><div class="lab">Catégorie CEE</div><div class="val" id="k-cat-live">—</div></div>
+        <div class="tile"><div class="lab">Total projet TTC</div><div class="val" id="k-total-live">0 €</div></div>
+        <div class="tile aides"><div class="lab">Total des aides</div><div class="val" id="k-aides-live">0 €</div></div>
+        <div class="tile"><div class="lab">Reste à charge</div><div class="val" id="k-rac-live">0 €</div></div>
+        <div class="tile"><div class="lab">Plus-value vs rempla.</div><div class="val pv-green" id="k-plus-live">0 €</div></div>
+      </div>
+      <div style="overflow:auto;margin-top:8px">
+        <table>
+          <thead><tr><th>Élément</th><th>Détails</th><th class="right">Montant (€)</th></tr></thead>
+          <tbody>
+            <tr><td>Coût PAC NIBE</td><td id="r-pac-detail-live">—</td><td class="right" id="r-pac-live">0</td></tr>
+            <tr><td>Coût captage</td><td id="r-capt-detail-live">—</td><td class="right" id="r-capt-live">0</td></tr>
+            <tr><td><b>Total projet TTC</b></td><td>PAC + captage</td><td class="right" id="r-total-live">0</td></tr>
+            <tr><td>MaPrimeRénov’ estimée</td><td id="r-mpr-detail-live">Profil : —</td><td class="right" id="r-mpr-live">0</td></tr>
+            <tr><td>Prime CEE estimée</td><td id="r-cee-detail-live">—</td><td class="right" id="r-cee-live">0</td></tr>
+            <tr><td><b>Total aides</b></td><td>MPR + CEE</td><td class="right" id="r-aides-live">0</td></tr>
+            <tr><td><b>Reste à charge</b></td><td>Total projet − Total aides</td><td class="right" id="r-rac2-live"><b>0</b></td></tr>
+            <tr><td>Coût « rempla. à l’identique »</td><td>Chaudière gaz/fioul</td><td class="right" id="r-base-live">0</td></tr>
+            <tr><td><b>Plus-value vs remplacement</b></td><td>Reste à charge − Coût remplacement</td><td class="right pv-green" id="r-plusvalue-live">0</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bloc PDF -->
     <div class="card" id="resultat" style="display:none">
-      <h2>Résumé & génération du PDF</h2>
+      <h2>Génération du PDF</h2>
       <div class="row" style="align-items:center;gap:12px">
         <button class="btn primary" id="btn-print">Générer le PDF (A4, 1 page)</button>
         <span class="muted">Le PDF inclura : Estimation non engageante, période <b>01/09/2025 → 31/12/2025</b>, CEE (catégorie), MPR déduite.</span>
@@ -253,7 +285,7 @@
     </div>
   </div>
 
-  <!-- ====== Rapport A4 ====== -->
+  <!-- Rapport A4 (print) -->
   <section id="rapport-letter">
     <div class="a4">
       <div id="addr">
@@ -261,12 +293,12 @@
         <div class="block right" id="addr-client">—</div>
       </div>
       <h2 style="text-align:center;margin:0 0 4mm">Résultat de simulation — PAC géothermique NIBE</h2>
-      <div class="kpi">
-        <div class="tile"><div class="lab">Catégorie CEE</div><div class="val" id="k-cat">—</div></div>
-        <div class="tile"><div class="lab">Total projet TTC</div><div class="val" id="k-total">0 €</div></div>
-        <div class="tile aides"><div class="lab">Total des aides (MPR + CEE)</div><div class="val" id="k-aides">0 €</div></div>
-        <div class="tile"><div class="lab">Reste à charge</div><div class="val" id="k-rac">0 €</div></div>
-        <div class="tile"><div class="lab">Plus-value vs remplacement</div><div class="val pv-green" id="k-plus">0 €</div></div>
+      <div class="kpi-print">
+        <div class="tile-print"><div class="lab-print">Catégorie CEE</div><div class="val-print" id="k-cat">—</div></div>
+        <div class="tile-print"><div class="lab-print">Total projet TTC</div><div class="val-print" id="k-total">0 €</div></div>
+        <div class="tile-print aides"><div class="lab-print">Total des aides (MPR + CEE)</div><div class="val-print" id="k-aides">0 €</div></div>
+        <div class="tile-print"><div class="lab-print">Reste à charge</div><div class="val-print" id="k-rac">0 €</div></div>
+        <div class="tile-print"><div class="lab-print">Plus-value vs remplacement</div><div class="val-print pv-green" id="k-plus">0 €</div></div>
       </div>
       <table>
         <thead><tr><th>Élément</th><th>Détails</th><th class="right">Montant (€)</th></tr></thead>
@@ -276,8 +308,8 @@
           <tr><td><b>Total projet TTC</b></td><td>PAC + captage</td><td class="right" id="r-total">0</td></tr>
           <tr><td>MaPrimeRénov’ estimée</td><td id="r-mpr-detail">Profil : —</td><td class="right" id="r-mpr">0</td></tr>
           <tr><td>Prime CEE estimée</td><td id="r-cee-detail">—</td><td class="right" id="r-cee">0</td></tr>
-          <tr class="total-aides"><td><b>Total des aides estimées</b></td><td>MPR + CEE</td><td class="right" id="r-aides">0</td></tr>
-          <tr class="total-rac"><td><b>Reste à charge</b></td><td>Total projet − Total aides</td><td class="right" id="r-rac2"><b>0</b></td></tr>
+          <tr><td><b>Total des aides estimées</b></td><td>MPR + CEE</td><td class="right" id="r-aides">0</td></tr>
+          <tr><td><b>Reste à charge</b></td><td>Total projet − Total aides</td><td class="right" id="r-rac2"><b>0</b></td></tr>
           <tr><td>Coût « remplacement à l’identique »</td><td>Chaudière gaz/fioul</td><td class="right" id="r-base">0</td></tr>
           <tr><td><b>Plus-value vs remplacement</b></td><td>Reste à charge − Coût remplacement</td><td class="right pv-green" id="r-plusvalue">0</td></tr>
         </tbody>
@@ -289,18 +321,17 @@
   </section>
 
   <script>
-    /* ===== Barèmes MPR (indicatifs) ===== */
+    /* Barèmes MPR (indicatifs pour profilage) */
     const thresholds={
       hors_idf:{1:{tm:16000,mo:20593,int:29148},2:{tm:23655,mo:30225,int:42848},3:{tm:28400,mo:36297,int:51293},4:{tm:33145,mo:42371,int:59738},5:{tm:37899,mo:48454,int:68181}},
       idf:{1:{tm:21411,mo:27656,int:38184},2:{tm:31441,mo:40544,int:56238},3:{tm:37793,mo:48731,int:67673},4:{tm:44145,mo:56927,int:79110},5:{tm:50497,mo:65123,int:90547}}
     };
-    /* ===== Plafonds CEE EDF (sept–déc 2025) ===== */
+    /* Plafonds CEE EDF (01/01/2025) */
     const thresholdsCEE={
       idf:{1:{tm:23768,mo:28933},2:{tm:34884,mo:42463},3:{tm:41893,mo:51000},4:{tm:48914,mo:59549},5:{tm:55961,mo:68123},plus:{tm:7038,mo:8568}},
       hors_idf:{1:{tm:17173,mo:22015},2:{tm:25115,mo:32197},3:{tm:30206,mo:38719},4:{tm:35285,mo:45234},5:{tm:40388,mo:51775},plus:{tm:5094,mo:6525}}
     };
 
-    /* ===== Helpers ===== */
     const $=id=>document.getElementById(id);
     const val=id=>($(id)?.value||'').trim();
     const num=id=>{const n=parseFloat((val(id)||'0').replace(/[^0-9.-]/g,''));return isNaN(n)?0:n};
@@ -321,7 +352,6 @@
       return autoProfil(region,taille,rfr);
     }
 
-    /* ===== Catégorie CEE — libellés positifs ===== */
     function getCEECategorie(){
       const region=val('region');
       const taille=Math.max(1,parseInt(val('menage-nb')||'1',10));
@@ -337,69 +367,100 @@
       if(row && rfr<=row.int) return 'revenu intermédiaire';
       return 'revenu supérieur';
     }
-    function calcCEE(){
-      const cat=getCEECategorie();
-      return (cat==='très modeste')?6000:5150; // fin 2025 : bonus EDF 6 000€ pour très modestes, sinon 5 150€
-    }
-
-    // MPR forfaitaire indicative (à adapter si besoin)
+    function calcCEE(){const cat=getCEECategorie();return (cat==='très modeste')?6000:5150}
     function getMPRAmount(){
       const {profil}=getProfilMPR();
       const map={tres_modestes:11000,modestes:9000,intermediaires:6000,superieurs:0};
       return map[profil]??0;
     }
 
-    /* ===== Calcul & remplissage rapport ===== */
-    function remplirRapport(){
+    /* Règles d'éligibilité (étapes 3/4/5) */
+    function checkEligibility(){
+      const isAppartement = document.querySelector('input[name="type-log"][value="Appartement"]').checked;
+      const isResidencePrincipale = document.querySelector('input[name="res-primary"]:checked')?.value === 'Oui';
+      const c1 = $('c1').checked; // remplacement PAC NIBE
+      const c2 = $('c2').checked; // RGE
+      const c3 = $('c3').checked; // > 15 ans
+      const c4 = $('c4').checked; // dossier avant travaux
+
+      const issues=[];
+      if(isAppartement){ issues.push("Type de logement : appartement (non éligible en monogeste géothermie standard)."); }
+      if(!isResidencePrincipale){ issues.push("Résidence non principale : non éligible MPR/CEE."); }
+      if(!c1){ issues.push("Le geste doit être le remplacement d’une chaudière gaz/fioul par une PAC géothermique NIBE."); }
+      if(!c2){ issues.push("Entreprise non RGE : condition indispensable."); }
+      if(!c3){ issues.push("Logement de moins de 15 ans : non éligible en monogeste."); }
+      if(!c4){ issues.push("Dossier non déposé avant travaux : non éligible."); }
+
+      return {eligible: issues.length===0, issues};
+    }
+
+    function remplir(target){
       const pac=num('pac-fourn')+num('pac-mdo');
       const capt=num('capt-fourn')+num('capt-mdo');
       const total=pac+capt;
 
-      const mpr=getMPRAmount();
-      const cee=calcCEE();
-      const totalAides=mpr+cee;
+      const elig = checkEligibility();
+
+      let mpr = 0, cee = 0, totalAides = 0, catCEE='—', profilTxt='—', via='—';
+      if(elig.eligible){
+        mpr = getMPRAmount();
+        cee = calcCEE();
+        totalAides = mpr + cee;
+        catCEE = getCEECategorie();
+        const p = getProfilMPR(); profilTxt = p.profil.replace('_',' '); via = p.via;
+      }
 
       const base=num('base-remplacement');
       const rac=Math.max(0,total-totalAides);
       const plus=rac-base;
 
-      // Détails
-      $('r-pac-detail').textContent=`Fourniture ${euro(num('pac-fourn'))} + MO ${euro(num('pac-mdo'))}`;
-      $('r-capt-detail').textContent=`${$('type-pac').selectedOptions[0].text} — Fourniture ${euro(num('capt-fourn'))} + Pose ${euro(num('capt-mdo'))}`;
+      if(target==='live'){
+        const typeTxt = $('type-pac').selectedOptions[0].text;
+        $('r-pac-detail-live').textContent=`Fourniture ${euro(num('pac-fourn'))} + MO ${euro(num('pac-mdo'))}`;
+        $('r-capt-detail-live').textContent=`${typeTxt} — Fourniture ${euro(num('capt-fourn'))} + Pose ${euro(num('capt-mdo'))}`;
+        $('r-pac-live').textContent=euro(pac);
+        $('r-capt-live').textContent=euro(capt);
+        $('r-total-live').textContent=euro(total);
+        $('r-mpr-detail-live').textContent=`Profil : ${profilTxt} (${via})`;
+        $('r-mpr-live').textContent=euro(mpr);
+        $('r-cee-detail-live').textContent= elig.eligible ? `barème EDF (catégorie ${catCEE})` : 'Non éligible';
+        $('r-cee-live').textContent=euro(cee);
+        $('r-aides-live').textContent=euro(totalAides);
+        $('r-rac2-live').innerHTML='<b>'+euro(rac)+'</b>';
+        $('r-base-live').textContent=euro(base);
+        $('r-plusvalue-live').textContent=euro(plus);
 
-      // Table
-      $('r-pac').textContent=euro(pac);
-      $('r-capt').textContent=euro(capt);
-      $('r-total').textContent=euro(total);
+        $('k-cat-live').textContent=catCEE;
+        $('k-total-live').textContent=euro(total);
+        $('k-aides-live').textContent=euro(totalAides);
+        $('k-rac-live').textContent=euro(rac);
+        $('k-plus-live').textContent=euro(plus);
 
-      const {profil,via}=getProfilMPR();
-      $('r-mpr-detail').textContent=`Profil : ${profil.replace('_',' ')} (${via})`;
-      $('r-mpr').textContent=euro(mpr);
+        const warn=$('elig-msg');
+        if(elig.issues.length){
+          warn.style.display='block';
+          warn.innerHTML = '<b>Non éligible :</b><br>'+elig.issues.map(s=>`• ${s}`).join('<br>');
+        } else {
+          warn.style.display='none'; warn.textContent='';
+        }
+      }
 
-      const cat=getCEECategorie();
-      $('r-cee-detail').textContent=`barème EDF (catégorie ${cat})`;
-      $('r-cee').textContent=euro(cee);
+      if(target==='print'){
+        $('r-pac-detail').textContent=`Fourniture ${euro(num('pac-fourn'))} + MO ${euro(num('pac-mdo'))}`;
+        $('r-capt-detail').textContent=`${$('type-pac').selectedOptions[0].text} — Fourniture ${euro(num('capt-fourn'))} + Pose ${euro(num('capt-mdo'))}`;
+        $('r-pac').textContent=euro(pac); $('r-capt').textContent=euro(capt); $('r-total').textContent=euro(total);
+        $('r-mpr-detail').textContent=`Profil : ${profilTxt} (${via})`; $('r-mpr').textContent=euro(mpr);
+        $('r-cee-detail').textContent= elig.eligible ? `barème EDF (catégorie ${catCEE})` : 'Non éligible'; $('r-cee').textContent=euro(cee);
+        $('r-aides').textContent=euro(totalAides); $('r-rac2').innerHTML='<b>'+euro(rac)+'</b>'; $('r-base').textContent=euro(base); $('r-plusvalue').textContent=euro(plus);
+        $('k-cat').textContent=catCEE; $('k-total').textContent=euro(total); $('k-aides').textContent=euro(totalAides); $('k-rac').textContent=euro(rac); $('k-plus').textContent=euro(plus);
 
-      $('r-aides').textContent=euro(totalAides);
-      $('r-rac2').innerHTML='<b>'+euro(rac)+'</b>';
-      $('r-base').textContent=euro(base);
-      $('r-plusvalue').textContent=euro(plus);
-
-      // KPIs (alignés horizontalement dans .kpi)
-      $('k-cat').textContent=cat;
-      $('k-total').textContent=euro(total);
-      $('k-aides').textContent=euro(totalAides);
-      $('k-rac').textContent=euro(rac);
-      $('k-plus').textContent=euro(plus);
-
-      // Adresses
-      const inst=[val('inst-raison'),val('inst-adresse'),`SIRET : ${val('inst-siret')}`,val('inst-email'),val('inst-tel')].filter(Boolean).join('\n');
-      const cli=[`${val('cli-prenom')} ${val('cli-nom')}`.trim(),val('cli-adresse'),val('cli-email')].filter(Boolean).join('\n');
-      $('addr-installateur').textContent=inst||'—';
-      $('addr-client').textContent=cli||'—';
+        const inst=[val('inst-raison'),val('inst-adresse'),`SIRET : ${val('inst-siret')}`,val('inst-email'),val('inst-tel')].filter(Boolean).join('\n');
+        const cli=[`${val('cli-prenom')} ${val('cli-nom')}`.trim(),val('cli-adresse'),val('cli-email')].filter(Boolean).join('\n');
+        $('addr-installateur').textContent=inst||'—'; $('addr-client').textContent=cli||'—';
+      }
     }
 
-    /* ===== Wizard logic ===== */
+    /* Wizard */
     const steps=[...document.querySelectorAll('.step')];
     let idx=0; const bar=$('bar'), info=$('progress-info'), title=$('step-title');
     const TITLES=steps.map(s=>s.getAttribute('data-title'));
@@ -415,15 +476,16 @@
     $('inst-siret').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D+/g,'').slice(0,14)});
     updateHead();
 
-    // Voir résultat & impression
+    // Voir résultat (LIVE) & impression
     $('btn-calc')?.addEventListener('click',()=>{
       const required=['inst-raison','inst-adresse','inst-siret','inst-email','inst-tel','cli-nom','cli-prenom','cli-email','cli-adresse','menage-nb','rfr'];
       for(const id of required){const el=$(id); if(el && !el.checkValidity()){el.reportValidity(); return;}}
-      remplirRapport();
+      $('live').style.display='block';
+      remplir('live');
       $('resultat').style.display='block';
-      window.scrollTo({top:$('resultat').offsetTop-8,behavior:'smooth'});
+      window.scrollTo({top:$('live').offsetTop-8,behavior:'smooth'});
     });
-    $('btn-print')?.addEventListener('click',()=>{remplirRapport();window.print()});
+    $('btn-print')?.addEventListener('click',()=>{remplir('print');window.print()});
   </script>
 </body>
 </html>
