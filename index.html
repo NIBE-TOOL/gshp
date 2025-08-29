@@ -281,7 +281,6 @@
       <button type="button" class="tab active" data-energy="fioul">Fioul</button>
       <button type="button" class="tab" data-energy="gaz">Gaz naturel</button>
       <button type="button" class="tab" data-energy="propane">Propane</button>
-      <button type="button" class="tab" data-energy="aero">Aérothermie</button>
     </div>
 
     <!-- Fioul -->
@@ -314,15 +313,6 @@
         <div><label for="elec-prix-prop">Prix du kWh électrique (€)</label><input id="elec-prix-prop" type="number" min="0" step="0.001" placeholder="Ex. 0.22"/></div>
       </div>
       <p class="note"><span class="pill">Hypothèses</span> 1 t propane ≈ 11 520 kWh.</p>
-    </div>
-
-    <!-- Aérothermie (conso élec uniquement) -->
-    <div id="bloc-aero" style="display:none">
-      <div class="grid">
-        <div><label for="aero-elec">Conso électrique aéro (kWh/an)</label><input id="aero-elec" type="number" min="0" step="1" placeholder="Ex. 7000"/></div>
-        <div><label for="elec-prix-aero">Prix du kWh électrique (€)</label><input id="elec-prix-aero" type="number" min="0" step="0.001" placeholder="Ex. 0.22"/></div>
-      </div>
-      <p class="note"><span class="pill">Hypothèses</span> Calcul interne basé sur un rendement aéro cohérent (non affiché).</p>
     </div>
 
     <div class="actions" style="margin-top:10px"><button type="button" class="btn" id="btn-amort-calc">Calculer</button></div>
@@ -565,7 +555,7 @@
       document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       const energy=btn.getAttribute('data-energy');
-      ['fioul','gaz','propane','aero'].forEach(k=>{
+      ['fioul','gaz','propane'].forEach(k=>{
         $('bloc-'+k).style.display = (k===energy)?'block':'none';
       });
     });
@@ -638,14 +628,6 @@
       costNow      = (prixT>0 ? t*prixT : kwh*PRICE_PROPANE) + aboP; // ajoute abonnement cuve
       pacKwh       = thermKwh / COP_GEO;
       pacCost      = pacKwh * elecPrice;
-    } else if(energy==='aero'){
-      const consoElec = num('aero-elec');
-      elecPrice       = num('elec-prix-aero');
-      const kwhT      = consoElec * COP_AERO; // reconstitue le besoin thermique
-      thermKwh = kwhT;
-      costNow  = consoElec * elecPrice;       // coût annuel aéro
-      pacKwh   = thermKwh / COP_GEO;          // conso électrique géo
-      pacCost  = pacKwh * elecPrice;          // coût annuel géo
     }
 
     const savingsYear = costNow - pacCost;                // Économies annuelles €
@@ -668,7 +650,8 @@
 
     // Coûts annuels pour le graphique (€/an)
     const costGeo  = pacCost;
-    const costAero = (thermKwh / COP_AERO) * (elecPrice || 0.22);
+    const refElec  = elecPrice || 0.22; // fallback raisonnable
+    const costAero = (thermKwh / COP_AERO) * refElec;     // calcul auto (référence)
     const costGaz  = (energy==='gaz') ? costNow : (thermKwh * PRICE_GAZ_REF);
     const costProp = (energy==='propane') ? costNow : (thermKwh * PRICE_PROPANE);
     const costFioul= (energy==='fioul') ? costNow : (thermKwh * PRICE_FIOUL_KWH);
