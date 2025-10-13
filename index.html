@@ -1,632 +1,1474 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Simulateur — PAC géothermique NIBE</title>
-<style>
-  :root{--bg:#f7fafc;--panel:#fff;--ink:#0f172a;--muted:#64748b;--line:#e5e7eb;--primary:#c20f0f;--good:#059669;--warn:#b45309;--shadow:0 10px 30px rgba(2,8,23,.08)}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulateur - Géothermie NIBE</title>
+  <style>
+    /* Base styles and colours */
+    :root {
+      --color-primary: #00897b;
+      --color-secondary: #b71c1c; /* Rouge foncé pour le bandeau du titre */
+      --color-accent: #00bfa5;
+      --color-background: #f4f9f7;
+      --color-surface: #ffffff;
+      --color-text: #263238;
+    }
 
-  .topbar{position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid var(--line)}
-  .topbar-inner{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
-  .brand h1{margin:0;font-size:clamp(1.1rem,1rem + .8vw,1.6rem);font-weight:800}
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Inter", sans-serif;
+      background: var(--color-background);
+      color: var(--color-text);
+      overscroll-behavior: none;
+    }
 
-  .wrap{max-width:1100px;margin:22px auto;padding:0 16px 80px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);margin:16px 0}
-  h2{margin:0 0 10px;font-size:1.15rem}
-  label{font-weight:650}
-  input,select{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:12px;background:#fff}
-  input:focus,select:focus{outline:none;box-shadow:0 0 0 3px rgba(194,15,15,.18);border-color:#f5b3b3}
-  .row{display:flex;gap:14px;flex-wrap:wrap}
-  .half{flex:1 1 320px}
-  .muted{color:#64748b}
+    h1 {
+      margin: 0;
+      padding: 1rem;
+      text-align: center;
+      background: var(--color-secondary);
+      color: #fff;
+      font-size: 1.3rem;
+    }
 
-  .actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
-  .btn{border:1px solid #cbd5e1;background:#fff;color:var(--ink);border-radius:12px;padding:10px 16px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(2,8,23,.06)}
-  .btn:hover{box-shadow:0 8px 18px rgba(2,8,23,.12)}
-  .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
-  .btn.ghost{background:transparent}
-  .btn:disabled{opacity:.6;cursor:not-allowed}
+    /* Container for the application */
+    .app-container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding-bottom: 80px; /* leave room for mobile safe area */
+      position: relative;
+    }
 
-  .wizard-head{display:flex;align-items:center;gap:12px;margin:8px 0}
-  .step-title{font-weight:800}
-  .progressbar{position:relative;flex:1;height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden}
-  .progressbar .bar{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--primary);transition:width .35s ease}
-  .progress-info{min-width:110px;text-align:right;color:#475569;font-weight:700}
-  .step{display:none;opacity:0;transform:translateY(10px);transition:opacity .35s ease,transform .35s ease}
-  .step.active{display:block;opacity:1;transform:translateY(0)}
+    /* Progress bar */
+    .progress-bar-container {
+      height: 6px;
+      width: 100%;
+      background: #e0e0e0;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
 
-  .choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-  .choice{display:flex;align-items:center;gap:12px;border:1px solid #d1d5db;border-radius:14px;padding:12px;cursor:pointer;background:#fff}
-  .choice:hover{box-shadow:0 8px 18px rgba(2,8,23,.12)}
-  .choice input{margin:0}
-  .choice .lbl{font-weight:700}
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--color-primary);
+      transition: width 0.4s ease;
+    }
 
-  .checklist{display:grid;gap:10px}
-  .check{display:flex;align-items:flex-start;gap:10px}
-  .check input[type=checkbox]{width:18px;height:18px;accent-color:var(--primary);margin:2px 0 0 0}
-  .check .txt{line-height:1.35}
+    /* Step containers */
+    .step {
+      display: none;
+      animation: fadeIn 0.4s ease forwards;
+    }
 
-  /* Live */
-  #live{display:none}
-  .kpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  .tile{border:1px solid #e5e7eb;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
-  .tile .lab{font-size:.92rem;color:#475569}
-  .tile .val{font-size:1.2rem;font-weight:900;text-align:right;font-variant-numeric:tabular-nums}
-  .tile.aides{background:#eef2ff;border-color:#c7d2fe}
-  .tile.aides .val{color:#1d4ed8}
-  .pv-green{color:var(--good);font-weight:800}
-  .warn{background:#fff7ed;border:1px solid #fed7aa;color:#b45309;border-radius:12px;padding:10px 12px}
-  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
-  th,td{border-bottom:1px solid #e5e7eb;padding:6px 8px;text-align:left}
-  td.right{text-align:right;font-variant-numeric:tabular-nums}
+    .step.active {
+      display: block;
+    }
 
-  /* ===== Impression A4 compacte ===== */
-  @page{ size:A4; margin:10mm } /* avant 14mm */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
 
-  #rapport-letter .a4{width:210mm;min-height:297mm;background:#fff;color:#111827;padding:12mm 14mm;border:1px solid #e5e7eb;margin:auto}
+    /* Form elements */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      margin-top: 0;
+      color: var(--color-secondary);
+    }
 
-  /* Préservation des couleurs à l'impression */
-  @media print{
-    *{ -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important }
-    .no-print{display:none!important}
-    #rapport-letter{display:block}
-    .a4{border:0}
-    .page-break{page-break-before:always}
-  }
+    label {
+      display: block;
+      font-size: 0.9rem;
+      margin-bottom: 0.3rem;
+      font-weight: 500;
+    }
 
-  /* Compaction éléments pour tenir sur 1 page */
-  .kpi-print{display:grid;grid-template-columns:repeat(5,1fr);gap:3mm;margin:2mm 0 4mm;align-items:stretch}
-  .tile-print{border:1px solid #e5e7eb;border-radius:10px;padding:5mm;display:flex;flex-direction:column;justify-content:space-between;min-height:36mm}
-  .lab-print{font-size:11px;color:#475569}
-  .val-print{font-size:17px;font-weight:900;text-align:right;font-variant-numeric:tabular-nums;line-height:1.1}
-  table{font-size:12px}
-  th,td{padding:4px 6px}
-  table, tr, td, th{page-break-inside: avoid}
-  .fine{font-size:9px;line-height:1.25;margin-top:4mm}
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 0.7rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      box-sizing: border-box;
+      margin-bottom: 1rem;
+    }
 
-  /* Bar chart (web & pdf) */
-  #bar-wrap svg{width:100%;height:280px;border:1px solid #e5e7eb;border-radius:8px;background:#fff}
-  #bar-wrap-print svg{width:100%;height:210mm;border:1px solid #e5e7eb;border-radius:8px;background:#fff}
+    input[type="checkbox"] {
+      transform: scale(1.2);
+      margin-right: 0.6rem;
+    }
 
-  /* Couleurs amortissement (écran & impression) */
-  .text-green{color:#059669 !important}
-  .text-red{color:#b91c1c !important}
-  .text-blue{color:#1d4ed8 !important}
-</style>
+    .checkbox-group {
+      margin-bottom: 1rem;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      background: var(--color-surface);
+      padding: 0.6rem;
+      margin-bottom: 0.4rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* Agrandit la zone de la case à cocher pour faciliter l’activation */
+    .checkbox-item input[type="checkbox"] {
+      width: 1.3rem;
+      height: 1.3rem;
+      margin-right: 0.8rem;
+      accent-color: var(--color-primary);
+    }
+
+    .next-btn, .prev-btn {
+      display: inline-block;
+      padding: 0.8rem 1.2rem;
+      margin-top: 1rem;
+      border: none;
+      border-radius: 25px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .next-btn {
+      background: var(--color-primary);
+      color: #fff;
+    }
+
+    .next-btn:hover {
+      background: var(--color-accent);
+    }
+
+    .prev-btn {
+      background: var(--color-secondary);
+      color: #fff;
+      margin-right: 1rem;
+    }
+
+    .prev-btn:hover {
+      background: var(--color-primary);
+    }
+
+    /* Results tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1rem;
+    }
+    th, td {
+      border-bottom: 1px solid #ddd;
+      padding: 0.4rem 0.5rem;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    th {
+      background: var(--color-primary);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .results-section {
+      margin-top: 1rem;
+    }
+
+    .chart-container {
+      width: 100%;
+      height: 250px;
+      margin-top: 1rem;
+      position: relative;
+      background: var(--color-surface);
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .chart-bars {
+      /* Conteneur des barres : occupe 100 % de la hauteur et aligne les barres en bas */
+      position: relative;
+      height: 100%;
+      width: 100%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      padding: 0 1rem;
+    }
+    .chart-bar {
+      flex: 1;
+      margin: 0 0.3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .chart-bar .bar {
+      width: 80%;
+      border-radius: 4px 4px 0 0;
+      background: var(--color-primary);
+      transition: height 0.5s ease;
+    /* Assure une hauteur minimale pour que les barres soient visibles même pour de petites valeurs */
+    min-height: 4px;
+    }
+    .chart-bar .label {
+      margin-top: 0.3rem;
+      font-size: 0.75rem;
+      text-align: center;
+    }
+
+    .print-btn {
+      width: 100%;
+      padding: 0.8rem;
+      background: var(--color-secondary);
+      color: #fff;
+      border: none;
+      border-radius: 25px;
+      margin-top: 1.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .print-btn:hover {
+      background: var(--color-primary);
+    }
+
+    /* Logo image sizing (used both on screen and in print) */
+    .logo-img {
+      /* Le logo est redimensionné pour éviter qu’il ne prenne toute la largeur du bandeau */
+      width: 60px;
+      height: auto;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    /* Ajout d'espacement entre les paragraphes dans les sections de résultats pour améliorer la lisibilité */
+    .results-section p {
+      margin: 0.4rem 0;
+    }
+
+    /* Highlight styles for results */
+    .highlight-prime {
+      color: var(--color-accent);
+      font-weight: 700;
+      background: rgba(0, 191, 165, 0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline;
+    }
+    .highlight-plus {
+      color: #2e7d32; /* vert pour positif */
+      font-weight: 700;
+      background: rgba(46, 125, 50, 0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline;
+    }
+    .highlight-minus {
+      color: #c62828; /* rouge pour négatif */
+      font-weight: 700;
+      background: rgba(198, 40, 40, 0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline;
+    }
+
+    /* Encadrement vert pour le reste à charge */
+    .highlight-charge {
+      color: #2e7d32;
+      font-weight: 700;
+      background: rgba(46, 125, 50, 0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+      /* Suppression de la bordure pour améliorer l’alignement */
+      display: inline;
+    }
+
+    /* Style pour mettre en évidence la valeur d'amortissement (en années) */
+    .highlight-amort {
+      background: #ffe0b2;
+      color: var(--color-secondary);
+      font-weight: 700;
+      padding: 0 0.2rem;
+      border-radius: 4px;
+    }
+
+    /* Bar colours – géothermie highlighted */
+    .bar {
+      width: 80%;
+      border-radius: 4px 4px 0 0;
+      transition: height 0.5s ease;
+    }
+    .bar-default {
+      background: var(--color-primary);
+    }
+    .bar-geothermie {
+      background: var(--color-accent);
+    }
+
+    /* Ensure bar colours take precedence within chart bars */
+    .chart-bar .bar-default {
+      background: var(--color-primary) !important;
+    }
+    .chart-bar .bar-geothermie {
+      background: var(--color-accent) !important;
+    }
+
+    /*------------------------------------------*/
+    /* Styles pour les graphiques horizontaux  */
+    /*------------------------------------------*/
+    /* Conteneur des barres horizontales (coûts et consommations) */
+    .chart-bars-horizontal {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 0.5rem;
+    }
+    /* Ligne d'une barre horizontale */
+    .chart-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    /* Étiquette à gauche de la barre */
+    .row-label {
+      flex-basis: 30%;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    /* Bar horizontale avec fond clair */
+    .row-bar {
+      flex-grow: 1;
+      height: 16px;
+      background: #e0f7f4;
+      border-radius: 8px;
+      position: relative;
+    }
+    /* Remplissage de la barre en fonction de la valeur */
+    .row-fill {
+      height: 100%;
+      border-radius: 6px;
+    }
+    /* Couleurs des barres */
+    .row-fill-default {
+      background: var(--color-primary);
+    }
+    .row-fill-geothermie {
+      background: var(--color-accent);
+    }
+
+    /* Valeur numérique à droite de la barre de consommation */
+    .row-value {
+      font-size: 0.8rem;
+      min-width: 60px;
+      text-align: right;
+    }
+
+    /*----------------------------------------*/
+    /* Styles pour le graphique en colonnes  */
+    /*----------------------------------------*/
+    .vertical-chart {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-end;
+      height: 200px;
+      width: 100%;
+    }
+    .vertical-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      margin: 0 0.3rem;
+      /* Occuper toute la hauteur du graphique pour permettre aux barres d’être dimensionnées correctement */
+      height: 100%;
+    }
+    .vertical-bar {
+      width: 30px;
+      border-radius: 4px 4px 0 0;
+    }
+    .vertical-value {
+      font-size: 0.7rem;
+      margin-bottom: 0.2rem;
+    }
+    .vertical-label {
+      font-size: 0.7rem;
+      text-align: center;
+      margin-top: 0.3rem;
+    }
+
+    /* Griser les champs de saisie pour les coûts énergétiques afin de guider l'utilisateur */
+    .energy-fields input {
+      background: #f5f5f5;
+    }
+
+    /* Valeur numérique pour les graphiques en colonnes */
+    .bar-value {
+      font-size: 0.7rem;
+      text-align: center;
+      margin-bottom: 0.2rem;
+    }
+
+    /* Print styles for PDF generation */
+    @media print {
+      /* Définir le format de page et les marges générales */
+      @page {
+        /* Format A4 sans marges par défaut : les marges seront gérées via le padding du body ci‑dessous */
+        size: A4;
+        margin: 0;
+      }
+      /* Fond blanc pour le PDF et ajout de marges internes : 1 cm en haut et en bas, 2 cm à gauche et à droite */
+      body {
+        background: #fff;
+        font-size: 9.5px; /* police plus petite pour tenir sur une page */
+        padding: 10mm 20mm 10mm 20mm;
+        margin: 0;
+      }
+      /* Masquer les éléments de navigation et la barre de progression */
+      .progress-bar-container, .prev-btn, .next-btn, .print-btn {
+        display: none !important;
+      }
+      /* Afficher uniquement l'étape 7 pour l'impression */
+      #step7 {
+        display: block !important;
+      }
+      /* Masquer le titre d’étape dans le rapport */
+      #step7 .section-title {
+        display: none !important;
+      }
+      /* Afficher la note/disclaimer dans le rapport */
+      #disclaimer {
+        display: block !important;
+        font-size: 0.6rem;
+      }
+      /* Ajuster la largeur et l’espacement du conteneur principal */
+      .app-container {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+      }
+      /* Ajuster la hauteur et la marge du graphique pour l’impression */
+      .chart-container {
+        height: 180px;
+        margin-top: 0.6rem;
+      }
+      /* Adapter la hauteur du graphique vertical à celle du conteneur pour l’impression */
+      .vertical-chart {
+        height: 160px;
+      }
+      /* Réduire la taille de la note/disclaimer pour gagner de la place */
+      #disclaimer {
+        font-size: 0.45rem;
+      }
+
+      /* Imprimer les couleurs de fond et des SVG de manière fidèle */
+      html, body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      /* Ajuster la taille des titres des sections */
+      .results-section h3 {
+        font-size: 1rem;
+        margin-bottom: 0.3rem;
+      }
+      /* Réduire la taille des cellules de tableau pour économiser de l’espace */
+      .results-section table th, .results-section table td {
+        padding: 0.2rem 0.3rem;
+        font-size: 0.75rem;
+      }
+
+    /* Style pour le logo dans le bandeau du titre (impression) */
+    .logo-img {
+      /* Réduire la largeur du logo pour l’impression afin d’éviter qu’il ne domine le bandeau */
+      width: 60px;
+      height: auto;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    }
+  </style>
 </head>
 <body>
-<div class="topbar no-print"><div class="topbar-inner"><div class="brand"><h1>Simulateur — PAC géothermique <b>NIBE</b></h1></div></div></div>
+  <!-- Ajout du logo NIBE et couleur rouge pour le bandeau du titre -->
+  <h1>
+    <img class="logo-img" src="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTIwIDI4IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbDpzcGFjZT0icHJlc2VydmUiIHN0eWxlPSJmaWxsLXJ1bGU6ZXZlbm9kZDtjbGlwLXJ1bGU6ZXZlbm9kZDtzdHJva2UtbGluZWpvaW46cm91bmQ7c3Ryb2tlLW1pdGVybGltaXQ6MiI+PHBhdGggZD0iTTI0Mi44OTggMzYuNzg5Yy00LjQ4MiAxNC41MjktMTAuOTU4IDE2Ljk1LTE3LjE1MSAxNi45NWgtNS41NDFWMjkuOTA4aDEuODNjMi41MjcgMCA3LjY5OS0uMTM3IDguNDMxIDguNjE1aDIuNzc4VjE3LjkzNWgtMi43NzhjLS43MzIgOC4yNjgtNS45ODYgOC4xNzUtOC41MTQgOC4xNzVoLTEuNzQ3VjIuNTgyaDQuOTcxYzguODggMCAxNC40MjIgNi41MjMgMTYuNzAzIDE1LjM1M2gyLjY1TDI0NC4xNjMuMzQxaC01NC42ODJ2Mi4yNDFoNi4wMzJ2NTEuMTZoLTYuMDMydjIuMjMyaDU1LjQxNmwuMzcxLTE5LjE4NWgtMi4zN3pNMTU3Ljg5MSA0NS4wOTJjMCAyLjI0OC0uMTYzIDcuNjU2LTYuMzU2IDcuNjU2aC0yLjc2OVYyOS4xODloMS45NTNjNC4wNzQgMCA3LjE3MiAxLjIwNiA3LjE3MiA3LjM4NXY4LjUxOHptLTkuMTI1LTQxLjUxaDEuODczYzQuMTU0IDAgNi4yNzMgMS43NjUgNi4yNzMgNS45NDF2OS4xNTZjMCAzLjYxNC0xLjQ2NyA2LjI2NC00LjY0NSA2LjI2NGgtMy41MDFWMy41ODJ6bTE5Ljk2MiAyNC42MDdjLTEuNzA5LS4xNi0zLjUwNC0uMzItNS4yMTQtLjR2LTEuNjA2YzcuOTg2LS4xNjIgMTguODI0LTIuNzMgMTguODI0LTEyLjUyMyAwLTEwLjI3NC0xMS42MjctMTMuMzAxLTIwLjAyLTEzLjMwMUwxMTcuNjc3LjM0NWwuMDA2IDIuMjM3aDYuMTQzdjUxLjE3MWgtNi4xNGwuMDA0IDIuMjI1IDM1Ljg2My4wMDZjMTEuMzI4IDAgMzAuMTcxIDEuMTAzIDMwLjE3MS0xNC43OTEgMC04LjUwNy03LjQxNi0xMi4yODEtMTQuOTk2LTEzLjAwNHpNNzIuNjY2IDIuNTgyaDYuMTkzdjUxLjE3aC02LjE5M3YyLjIyMmgzNy42NXYtMi4yMjFoLTYuMTk0VjIuNTgyaDYuMTk0Vi4zNDFoLTM3LjY1djIuMjQxek00Ni4zOTcgMi41MDloMS42M2MzLjAxNSAwIDUuMTk2LjYxMyA1LjE5NiAzLjkzdjIzLjIxOUwzMS40ODQuMzQxSC4wMzZ2Mi4wODhoMS43MDJjMi41MjcgMCAzLjQ0OCAxLjgxOSA0Ljk5NyAzLjgyNXYzOS44NTljMCAzLjY5My0uNjc3IDcuNjkxLTQuMTgxIDcuNjkxSDB2Mi4xN2gxOS4zMDV2LTIuMTdoLTIuNjA5Yy0zLjkxMSAwLTQuMjQzLTMuOTk4LTQuMjQzLTcuNjkxVjEzLjk5NGwzMC40MzkgNDEuOThoMTYuMTMxVjEyLjE5MWMwLTUuOTY4LS41Mi05LjY4MiAzLjcxNi05LjY4MmgyLjc0M1YuMzQxSDQ2LjM5N3YyLjE2OHoiIHN0eWxlPSJmaWxsOiNhODFhMWE7ZmlsbC1ydWxlOm5vbnplcm8iIHRyYW5zZm9ybT0idHJhbnNsYXRlKC4wNDcgLS4xNjcpIHNjYWxlKC40ODg4OCkiLz48L3N2Zz4=" alt="NIBE logo" />
+    <span>Simulateur&nbsp;—&nbsp;Géothermie&nbsp;NIBE</span>
+  </h1>
+  <div class="app-container">
+    <!-- Progress bar -->
+    <div class="progress-bar-container">
+      <div id="progress" class="progress-bar" style="width: 0%;"></div>
+    </div>
 
-<div class="wrap no-print">
-  <div class="card wizard-head">
-    <div class="step-title" id="step-title">Étape 1 · Type de logement</div>
-    <div class="progressbar" aria-hidden="true"><div class="bar" id="bar"></div></div>
-    <div class="progress-info" id="progress-info">0%</div>
-  </div>
-
-  <form id="wizard" novalidate>
-    <!-- 1. TYPE LOGEMENT -->
-    <section class="card step active" data-title="Type de logement">
-      <h2>Type de logement (logement individuel si maison)</h2>
-      <div class="choices">
-        <label class="choice"><input type="radio" name="type-log" value="Maison individuelle" checked/><span class="lbl">Maison individuelle <span class="muted">(logement individuel)</span></span></label>
-        <label class="choice"><input type="radio" name="type-log" value="Appartement"/><span class="lbl">Appartement</span></label>
+    <!-- Step 1: Conditions préalables et localisation -->
+    <div id="step1" class="step active">
+      <p class="section-title">Étape 1 : Conditions préalables</p>
+      <div class="checkbox-group">
+        <div class="checkbox-item">
+          <input type="checkbox" id="engagement" checked />
+          <label for="engagement">
+            Je confirme qu’il s’agit de ma résidence principale en maison individuelle, que les travaux consistent en un remplacement d’une chaudière gaz/fioul par une pompe à chaleur géothermique NIBE, qu’ils seront réalisés par une entreprise RGE et que le dossier sera déposé avant les travaux.
+          </label>
+        </div>
       </div>
-      <div class="actions"><button type="button" class="btn primary" data-next>Suivant</button></div>
-    </section>
-
-    <!-- 2. RÉSIDENCE PRINCIPALE -->
-    <section class="card step" data-title="Résidence principale">
-      <h2>Résidence principale</h2>
-      <div class="choices">
-        <label class="choice"><input type="radio" name="res-primary" value="Oui" checked/><span class="lbl">Oui</span></label>
-        <label class="choice"><input type="radio" name="res-primary" value="Non"/><span class="lbl">Non</span></label>
+      <label for="codePostal">Code&nbsp;postal</label>
+      <input type="text" id="codePostal" placeholder="Ex : 35000" maxlength="5" />
+      <div style="text-align:right;">
+        <button class="next-btn" onclick="nextStep(1)">Suivant ▶</button>
       </div>
-      <div class="actions"><button type="button" class="btn ghost" data-prev>Précédent</button><button type="button" class="btn primary" data-next>Suivant</button></div>
-    </section>
+    </div>
 
-    <!-- 3. HYPOTHÈSES -->
-    <section class="card step" data-title="Hypothèses">
-      <h2>Hypothèses & critères d’éligibilité</h2>
-      <div class="checklist">
-        <label class="check"><input id="c1" type="checkbox" checked/><span class="txt">Remplacement d’une chaudière gaz/fioul par PAC géothermique NIBE</span></label>
-        <label class="check"><input id="c2" type="checkbox" checked/><span class="txt">Travaux réalisés par une entreprise RGE (PAC géothermique)</span></label>
-        <label class="check"><input id="c3" type="checkbox" checked/><span class="txt">Logement de plus de 15 ans</span></label>
-        <label class="check"><input id="c4" type="checkbox" checked/><span class="txt">Dossier déposé avant travaux</span></label>
-        <label class="check"><input id="c5" type="checkbox" checked/><span class="txt">ETAS &gt; 154 % pour régime d’eau à 55 °C</span></label>
-        <label class="check"><input id="c6" type="checkbox" checked/><span class="txt">ETAS &gt; 204 % pour régime d’eau à 35 °C</span></label>
+    <!-- Step 2: Informations fiscales et surface -->
+    <div id="step2" class="step">
+      <p class="section-title">Étape 2 : Informations fiscales et surface</p>
+      <label for="revenu">Revenu fiscal de référence (€)</label>
+      <input type="number" id="revenu" placeholder="Ex : 45000" min="0" />
+      <label for="foyer">Nombre de personnes dans le foyer</label>
+      <input type="number" id="foyer" placeholder="Ex : 3" min="1" />
+      <label for="surface">Surface chauffée (m²)</label>
+      <input type="number" id="surface" placeholder="Ex : 100" min="1" />
+      <div style="text-align:right;">
+        <button class="prev-btn" onclick="prevStep(2)">◀ Précédent</button>
+        <button class="next-btn" onclick="nextStep(2)">Suivant ▶</button>
       </div>
-      <div class="actions"><button type="button" class="btn ghost" data-prev>Précédent</button><button type="button" class="btn primary" data-next>Suivant</button></div>
-    </section>
+    </div>
 
-    <!-- 4. MÉNAGE -->
-    <section class="card step" data-title="Ménage">
-      <h2>Nombre de personnes dans le ménage</h2>
-      <input id="menage-nb" type="number" min="1" step="1" value="2" required/>
-      <div class="actions"><button type="button" class="btn ghost" data-prev>Précédent</button><button type="button" class="btn primary" data-next>Suivant</button></div>
-    </section>
-
-    <!-- 5. RFR -->
-    <section class="card step" data-title="Revenus">
-      <h2>Revenu fiscal de référence du foyer (€)</h2>
-      <input id="rfr" type="number" min="0" step="0.01" placeholder="Ex. 80231.57" required/>
-      <small class="muted">Vous pouvez saisir un montant au centime près.</small>
-      <div class="actions"><button type="button" class="btn ghost" data-prev>Précédent</button><button type="button" class="btn primary" data-next>Suivant</button></div>
-    </section>
-
-    <!-- 6. RÉGION BARÈME -->
-    <section class="card step" data-title="Région">
-      <h2>Région de barème</h2>
-      <select id="region">
-        <option value="hors_idf" selected>Hors Île-de-France</option>
-        <option value="idf">Île-de-France</option>
+    <!-- Step 3: Type de PAC et usage -->
+    <div id="step3" class="step">
+      <p class="section-title">Étape 3 : Type de pompe à chaleur</p>
+      <label for="typePac">Type de pompe à chaleur</label>
+      <select id="typePac">
+        <option value="sol">Sol/Eau (géothermie)</option>
+        <option value="eau">Eau/Eau (aquathermie)</option>
       </select>
-      <div class="actions"><button type="button" class="btn ghost" data-prev>Précédent</button><button type="button" class="btn primary" data-next>Suivant</button></div>
-    </section>
-
-    <!-- 7. CHOIX SYSTÈME -->
-    <section class="card step" data-title="Système">
-      <h2>Choix du système</h2>
-      <select id="type-pac">
-        <option value="sol_eau_vertical" selected>Sol/Eau — sondes verticales (forage)</option>
-        <option value="sol_eau_horizontaux">Sol/Eau — capteurs horizontaux</option>
-        <option value="eau_eau">Eau/Eau — nappe / aquifère</option>
+      <label for="temperature">Température de fonctionnement</label>
+      <select id="temperature">
+        <option value="35">35 °C</option>
+        <!-- 55 °C avec radiateurs (pluriel) -->
+        <option value="55">55 °C radiateurs</option>
+        <!-- 55 °C avec plancher chauffant + radiateurs (pluriel) -->
+        <option value="55r">55 °C plancher chauffant + radiateurs</option>
       </select>
-      <small class="muted">Par défaut : capteurs <b>verticaux</b> (sol/eau).</small>
-      <div class="actions"><button type="button" class="btn ghost" data-prev>Précédent</button><button type="button" class="btn primary" data-next>Suivant</button></div>
-    </section>
-
-    <!-- 8. COÛT PAC NIBE -->
-    <section class="card step" data-title="Coûts PAC NIBE">
-      <h2>Coûts — PAC NIBE</h2>
-      <div class="row">
-        <div class="half"><label for="pac-fourn">Fourniture (€)</label><input id="pac-fourn" type="number" min="0" step="0.01" placeholder="Ex. 15000.55"/></div>
-        <div class="half"><label for="pac-mdo">Main d’œuvre (€)</label><input id="pac-mdo" type="number" min="0" step="0.01" placeholder="Ex. 2999.99"/></div>
-      </div>
-      <div class="actions"><button type="button" class="btn ghost" data-prev>Précédent</button><button type="button" class="btn primary" data-next>Suivant</button></div>
-    </section>
-
-    <!-- 9. COÛT CAPTAGE -->
-    <section class="card step" data-title="Coûts captage">
-      <h2>Coûts — Captage</h2>
-      <div class="row">
-        <div class="half"><label for="capt-fourn">Fourniture (€)</label><input id="capt-fourn" type="number" min="0" step="0.01" placeholder="Ex. 8000.40"/></div>
-        <div class="half"><label for="capt-mdo">Pose (€)</label><input id="capt-mdo" type="number" min="0" step="0.01" placeholder="Ex. 3500.75"/></div>
-      </div>
-      <div class="actions"><button type="button" class="btn ghost" data-prev>Précédent</button><button type="button" class="btn primary" data-next>Suivant</button></div>
-    </section>
-
-    <!-- 10. BASE IDENTIQUE -->
-    <section class="card step" data-title="Remplacement à l’identique">
-      <h2>Si vous remplaciez à l’identique</h2>
-      <p class="muted" style="margin-top:-4px">Indiquez le <b>coût total</b> (fourniture + pose) pour une chaudière gaz/fioul équivalente. Nous comparerons à la PAC NIBE pour afficher la <b>plus-value réelle</b>.</p>
-      <label for="base-remplacement">Facture totale TTC (€)</label>
-      <input id="base-remplacement" type="number" min="0" step="0.01" placeholder="Ex. 6500.00"/>
-      <div class="actions"><button type="button" class="btn ghost" data-prev>Précédent</button><button type="button" class="btn primary" id="btn-calc">Voir le résultat</button></div>
-    </section>
-  </form>
-
-  <!-- Résultat LIVE -->
-  <div class="card" id="live" style="display:none">
-    <h2>Résultat de simulation (aperçu)</h2>
-    <div id="elig-msg" class="warn" style="display:none"></div>
-    <div class="kpi" style="margin-top:8px">
-      <div class="tile"><div class="lab">Catégorie CEE</div><div class="val" id="k-cat-live">—</div></div>
-      <div class="tile"><div class="lab">Total projet TTC</div><div class="val" id="k-total-live">0 €</div></div>
-      <div class="tile aides"><div class="lab">Total des aides</div><div class="val" id="k-aides-live">0 €</div></div>
-      <div class="tile"><div class="lab">Reste à charge</div><div class="val" id="k-rac-live">0 €</div></div>
-      <div class="tile"><div class="lab">Plus-value vs rempla.</div><div class="val pv-green" id="k-plus-live">0 €</div></div>
-    </div>
-    <div style="overflow:auto;margin-top:8px">
-      <table>
-        <thead><tr><th>Élément</th><th>Détails</th><th class="right">Montant (€)</th></tr></thead>
-        <tbody>
-          <tr><td>Coût PAC NIBE</td><td id="r-pac-detail-live">—</td><td class="right" id="r-pac-live">0</td></tr>
-          <tr><td>Coût captage</td><td id="r-capt-detail-live">—</td><td class="right" id="r-capt-live">0</td></tr>
-          <tr><td><b>Total projet TTC</b></td><td>PAC + captage</td><td class="right" id="r-total-live">0</td></tr>
-          <tr><td>MaPrimeRénov’ estimée</td><td id="r-mpr-detail-live">Profil : —</td><td class="right" id="r-mpr-live">0</td></tr>
-          <tr><td>Prime CEE estimée</td><td id="r-cee-detail-live">—</td><td class="right" id="r-cee-live">0</td></tr>
-          <tr><td><b>Total aides</b></td><td>MPR + CEE</td><td class="right" id="r-aides-live">0</td></tr>
-          <tr><td><b>Reste à charge</b></td><td>Total projet − Total aides</td><td class="right" id="r-rac2-live"><b>0</b></td></tr>
-          <tr><td>Coût « rempla. à l’identique »</td><td>Chaudière gaz/fioul</td><td class="right" id="r-base-live">0</td></tr>
-          <tr><td><b>Plus-value vs remplacement</b></td><td>Reste à charge − Coût remplacement</td><td class="right pv-green" id="r-plusvalue-live">0</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Amortissement -->
-  <div class="card" id="amort" style="display:none">
-    <h2>Amortissement (option)</h2>
-    <p class="muted">Calcule la <b>durée d’amortissement</b> à partir de la <b>plus-value vs remplacement</b> et des <b>économies annuelles</b>.</p>
-
-    <div class="row">
-      <div class="half">
-        <label for="amort-mode">Énergie actuelle</label>
-        <select id="amort-mode">
-          <option value="fioul" selected>Fioul</option>
-          <option value="gaz">Gaz naturel</option>
-          <option value="propane">Propane</option>
-        </select>
+      <label for="usage">Usage</label>
+      <select id="usage">
+        <option value="chauffage">Chauffage seul</option>
+        <option value="ecs">Chauffage + Eau chaude sanitaire (ECS)</option>
+      </select>
+      <div style="text-align:right;">
+        <button class="prev-btn" onclick="prevStep(3)">◀ Précédent</button>
+        <button class="next-btn" onclick="nextStep(3)">Suivant ▶</button>
       </div>
     </div>
 
-    <!-- Fioul -->
-    <div id="bloc-fioul" class="row" style="margin-top:10px">
-      <div class="half"><label for="fioul-litres">Consommation fioul (L/an)</label><input id="fioul-litres" type="number" min="0" step="1" placeholder="Ex. 2000"/></div>
-      <div class="half"><label for="fioul-prix">Prix du litre de fioul (€)</label><input id="fioul-prix" type="number" min="0" step="0.001" placeholder="Ex. 1.60"/></div>
-      <div class="half"><label for="elec-prix-fioul">Prix du kWh électrique (€)</label><input id="elec-prix-fioul" type="number" min="0" step="0.001" placeholder="Ex. 0.22"/></div>
-    </div>
-
-    <!-- Gaz -->
-    <div id="bloc-gaz" class="row" style="display:none;margin-top:10px">
-      <div class="half"><label for="gaz-kwh">Conso gaz (kWh/an)</label><input id="gaz-kwh" type="number" min="0" step="1" placeholder="Ex. 20000"/></div>
-      <div class="half"><label for="gaz-prix">Prix du kWh gaz (€)</label><input id="gaz-prix" type="number" min="0" step="0.001" placeholder="Ex. 0.10"/></div>
-      <div class="half"><label for="gaz-abo">Abonnement gaz (€ / an)</label><input id="gaz-abo" type="number" min="0" step="0.01" placeholder="Ex. 250"/></div>
-      <div class="half"><label for="elec-prix-gaz">Prix du kWh électrique (€)</label><input id="elec-prix-gaz" type="number" min="0" step="0.001" placeholder="Ex. 0.22"/></div>
-    </div>
-
-    <!-- Propane -->
-    <div id="bloc-propane" class="row" style="display:none;margin-top:10px">
-      <div class="half"><label for="prop-tonnes">Tonnes de propane (t/an)</label><input id="prop-tonnes" type="number" min="0" step="0.01" placeholder="Ex. 1.2"/></div>
-      <div class="half"><label for="prop-prix-tonne">Prix de la tonne (€)</label><input id="prop-prix-tonne" type="number" min="0" step="0.01" placeholder="Ex. 2800"/></div>
-      <div class="half"><label for="prop-abo">Abonnement cuve (€ / an)</label><input id="prop-abo" type="number" min="0" step="0.01" placeholder="Ex. 150"/></div>
-      <div class="half"><label for="elec-prix-prop">Prix du kWh électrique (€)</label><input id="elec-prix-prop" type="number" min="0" step="0.001" placeholder="Ex. 0.22"/></div>
-    </div>
-
-    <div class="actions" style="margin-top:10px"><button type="button" class="btn" id="btn-amort-calc">Calculer</button></div>
-
-    <div id="amort-result" style="display:none;margin-top:10px">
-      <div class="kpi">
-        <div class="tile"><div class="lab">Énergie thermique</div><div class="val" id="amort-therm-kwh">0 kWh/an</div></div>
-        <div class="tile"><div class="lab">Conso électrique PAC</div><div class="val" id="amort-pac-kwh">0 kWh/an</div></div>
-        <div class="tile"><div class="lab">Coût énergie actuel</div><div class="val text-red" id="amort-actuel">0 €</div></div>
-        <div class="tile"><div class="lab">Coût PAC (élec)</div><div class="val text-green" id="amort-pac-eur">0 €</div></div>
-        <div class="tile"><div class="lab">Économies/an</div><div class="val text-green" id="amort-eco">0 €</div></div>
-        <div class="tile"><div class="lab">Plus-value vs remplacement</div><div class="val" id="amort-plus">0 €</div></div>
-        <div class="tile"><div class="lab">Amortissement</div><div class="val text-green" id="amort-years">—</div></div>
+    <!-- Step 4: Choix du modèle NIBE -->
+    <div id="step4" class="step">
+      <p class="section-title">Étape 4 : Sélection du modèle NIBE</p>
+      <label for="modele">Modèle NIBE</label>
+      <select id="modele">
+        <!-- Options remplies dynamiquement -->
+      </select>
+      <div style="text-align:right;">
+        <button class="prev-btn" onclick="prevStep(4)">◀ Précédent</button>
+        <button class="next-btn" onclick="nextStep(4)">Suivant ▶</button>
       </div>
+    </div>
 
-      <!-- Graphique colonnes – web -->
-      <div id="bar-wrap"><svg id="bar-svg" viewBox="0 0 800 280" preserveAspectRatio="none"></svg></div>
+    <!-- Step 5: Coûts d'installation -->
+    <div id="step5" class="step">
+      <p class="section-title">Étape 5 : Coûts d’installation</p>
+      <label for="coutFourniture">Coût fourniture PAC (€ TTC)</label>
+      <!-- Exemple par défaut : 15 000 € -->
+      <input type="number" id="coutFourniture" placeholder="Ex&nbsp;: 15000" min="0" />
+      <label for="coutMO">Coût main d’œuvre (€ TTC)</label>
+      <!-- Exemple par défaut : 2 000 € -->
+      <input type="number" id="coutMO" placeholder="Ex&nbsp;: 2000" min="0" />
+      <label for="coutForage">Coût forage géothermique (€ TTC)</label>
+      <!-- Exemple par défaut : 7 000 € -->
+      <input type="number" id="coutForage" placeholder="Ex&nbsp;: 7000" min="0" />
+      <label for="coutChaudiere">Coût du remplacement d’une chaudière équivalente (€ TTC)</label>
+      <!-- Exemple par défaut : 5 000 € -->
+      <input type="number" id="coutChaudiere" placeholder="Ex&nbsp;: 5000" min="0" />
+      <div style="text-align:right;">
+        <button class="prev-btn" onclick="prevStep(5)">◀ Précédent</button>
+        <button class="next-btn" onclick="nextStep(5)">Suivant ▶</button>
+      </div>
+    </div>
+
+    <!-- Step 6: Paramètres d’amortissement -->
+    <div id="step6" class="step">
+      <p class="section-title">Étape 6 : Paramètres d’amortissement</p>
+      <label for="energieType">Énergie actuelle utilisée</label>
+      <select id="energieType" onchange="updateEnergyFields()">
+        <option value="fuel">Fioul</option>
+        <option value="gaz">Gaz naturel</option>
+        <option value="propane">Propane</option>
+      </select>
+      <div id="fuelFields" class="energy-fields">
+        <label for="fuelLitres">Consommation annuelle (litres)</label>
+        <input type="number" id="fuelLitres" placeholder="Ex : 2000" min="0" value="2000" />
+        <label for="fuelPrix">Prix du fioul (€ / litre)</label>
+        <!-- Mettre 1,50 € par défaut pour le fioul et mettre le placeholder en conséquence -->
+        <input type="number" id="fuelPrix" placeholder="Ex : 1,50" min="0" step="0.01" value="1.50" />
+        <label for="fuelElecPrix">Prix du kWh électrique (€)</label>
+        <input type="number" id="fuelElecPrix" placeholder="Ex : 0,20" min="0" step="0.01" value="0.20" />
+      </div>
+      <div id="gazFields" class="energy-fields" style="display:none;">
+        <label for="gazKwh">Consommation annuelle (kWh)</label>
+        <input type="number" id="gazKwh" placeholder="Ex : 20000" min="0" value="20000" />
+        <label for="gazPrix">Prix du gaz (€ / kWh)</label>
+        <input type="number" id="gazPrix" placeholder="Ex : 0,1284" min="0" step="0.0001" value="0.1284" />
+        <label for="gazAbonnement">Abonnement gaz (€ / an)</label>
+        <input type="number" id="gazAbonnement" placeholder="Ex : 250" min="0" value="250" />
+        <label for="gazElecPrix">Prix du kWh électrique (€)</label>
+        <input type="number" id="gazElecPrix" placeholder="Ex : 0,20" min="0" step="0.01" value="0.20" />
+      </div>
+      <div id="propaneFields" class="energy-fields" style="display:none;">
+        <label for="propaneTonnes">Consommation annuelle (tonnes)</label>
+        <input type="number" id="propaneTonnes" placeholder="Ex : 1,2" min="0" step="0.01" value="1.2" />
+        <label for="propanePrix">Prix du propane (€ / tonne)</label>
+        <input type="number" id="propanePrix" placeholder="Ex : 3353" min="0" value="3353.4" />
+        <label for="propaneAbonnement">Abonnement cuve (€ / an)</label>
+        <input type="number" id="propaneAbonnement" placeholder="Ex : 250" min="0" value="250" />
+        <label for="propaneElecPrix">Prix du kWh électrique (€)</label>
+        <input type="number" id="propaneElecPrix" placeholder="Ex : 0,20" min="0" step="0.01" value="0.20" />
+      </div>
+      <div style="text-align:right;">
+        <button class="prev-btn" onclick="prevStep(6)">◀ Précédent</button>
+        <button class="next-btn" onclick="nextStep(6)">Suivant ▶</button>
+      </div>
+    </div>
+
+    <!-- Step 7: Résultats et rapport -->
+    <div id="step7" class="step">
+      <p class="section-title">Étape 7 : Résultats de simulation</p>
+      <div id="resultFinance" class="results-section"></div>
+      <div id="resultAmort" class="results-section" style="margin-top: 1.5rem;"></div>
+      <!-- Graphique comparatif des consommations -->
+      <div id="consumptionChart" class="chart-container"></div>
+      <!-- Note et réserves (visible dans le rapport PDF) -->
+      <div id="disclaimer" class="results-section" style="display:none; margin-top: 1rem; line-height:1.3;">
+        <p><strong>Note : </strong>Cette simulation est fournie à titre indicatif et n’a pas de valeur contractuelle. Les montants calculés reposent sur les informations déclarées par l’utilisateur et des hypothèses de coûts et de performances. Les aides financières (prime CEE et MaPrimeRénov’) dépendent de la catégorie de revenu, de la zone climatique, des justificatifs fournis et des validations des organismes compétents (ANAH, délégataire CEE).</p>
+        <p>Le remplacement est étudié comme un monogeste (chaudière gaz/fioul vers pompe à chaleur géothermique NIBE). Les tarifs énergétiques utilisés par défaut sont : gaz naturel 0,1284 €/kWh, fioul 1,16 €/L, propane 0,243 €/kWh, électricité 0,20 €/kWh. Ces valeurs peuvent varier et doivent être confirmées lors du projet.</p>
+        <p>Le dossier de demande de subvention doit être déposé avant le début des travaux et l’installation doit être réalisée par une entreprise certifiée RGE.</p>
+      </div>
+      <button class="print-btn" onclick="window.print()">📄 Éditer PDF</button>
+      <div style="text-align:right;">
+        <button class="prev-btn" onclick="prevStep(7)">◀ Précédent</button>
+      </div>
     </div>
   </div>
 
-  <!-- Actions rapport -->
-  <div class="card" id="resultat" style="display:none">
-    <h2>Rapport</h2>
-    <div class="row" style="align-items:center;gap:12px">
-      <button class="btn" id="btn-preview">Voir le rapport</button>
-      <button class="btn primary" id="btn-print">Imprimer / Export PDF (A4)</button>
-      <span class="muted">PDF : Page 1 = rapport + mentions · Page 2 = graphique (si amortissement calculé).</span>
-    </div>
-  </div>
-</div>
+  <script>
+    /**
+     * Données des barèmes de revenus (MaPrimeRénov' 2025)
+     */
+    const revenusBarème = {
+      nonIDF: {
+        tres: [17173, 25115, 30206, 35285, 40388],
+        modeste: [22015, 32197, 38719, 45234, 51775],
+        inter: [30844, 45340, 54592, 63844, 73098],
+        supInc: { tres: 5094, modeste: 6525, inter: 9254 }
+      },
+      IDF: {
+        tres: [23768, 34884, 41893, 48914, 55961],
+        modeste: [28933, 42463, 51000, 59549, 68123],
+        inter: [40404, 59394, 71060, 83637, 95758],
+        supInc: { tres: 7038, modeste: 8568, inter: 12122 }
+      }
+    };
 
-<!-- RAPPORT A4 -->
-<section id="rapport-letter">
-  <!-- PAGE 1 -->
-  <div class="a4" id="page1">
-    <h2 style="text-align:center;margin:0 0 2mm;font-size:18px">Résultat de simulation — PAC géothermique NIBE</h2>
+    /**
+     * Liste des départements par zone climatique.
+     * Si un département ne figure ni dans H1 ni dans H3, on considère qu’il est en H2.
+     */
+    const zoneH1 = [
+      '01','02','03','05','08','10','14','15','19','21','23','25','27','28','38','39','42','43','45','51','52','54','55','57','58','59','60','61','62','63','67','68','69','70','71','73','74','75','76','77','78','80','87','88','89','90','91','92','93','94','95','975'
+    ];
+    const zoneH3 = [
+      '06','11','13','20','2A','2B','30','34','66','83','971','972','973','974','976'
+    ];
 
-    <div class="kpi-print">
-      <div class="tile-print"><div class="lab-print">Catégorie CEE</div><div class="val-print" id="k-cat">—</div></div>
-      <div class="tile-print"><div class="lab-print">Total projet TTC</div><div class="val-print" id="k-total">0 €</div></div>
-      <div class="tile-print" style="background:#eef2ff;border-color:#c7d2fe"><div class="lab-print">Total des aides (MPR + CEE)</div><div class="val-print" id="k-aides" style="color:#1d4ed8">0 €</div></div>
-      <div class="tile-print"><div class="lab-print">Reste à charge</div><div class="val-print" id="k-rac">0 €</div></div>
-      <div class="tile-print"><div class="lab-print">Plus-value vs remplacement</div><div class="val-print" id="k-plus" style="color:#059669">0 €</div></div>
-    </div>
+    /**
+     * Définitions des modèles et de leur efficacité ETAS minimale par température.
+     * Pour chaque modèle on stocke l’ETAS minimal (bornes inférieures des plages) pour 35 °C et 55 °C.
+     */
+    const modelesData = {
+      sol: {
+        'NIBE S1156-8': { etas35: 200, etas55: 140 },
+        'NIBE S1156-13': { etas35: 200, etas55: 140 },
+        'NIBE S1156-18': { etas35: 230, etas55: 140 },
+        'NIBE S1256-8': { etas35: 200, etas55: 140 },
+        'NIBE S1256-13': { etas35: 200, etas55: 140 },
+        'NIBE S1256-18': { etas35: 230, etas55: 140 },
+        'NIBE F1253-4': { etas35: 200, etas55: 140 },
+        'NIBE F1253-6': { etas35: 200, etas55: 140 },
+        'NIBE F1153-4': { etas35: 200, etas55: 140 },
+        'NIBE F1153-6': { etas35: 200, etas55: 140 },
+        'NIBE S1155-25': { etas35: 200, etas55: 140 },
+        'NIBE F1345-24': { etas35: 170, etas55: 140 },
+        'NIBE F1345-40': { etas35: 170, etas55: 140 },
+        'NIBE F1345-30': { etas35: 170, etas55: 111 },
+        'NIBE F1345-60': { etas35: 170, etas55: 111 },
+        'NIBE F1355-28': { etas35: 170, etas55: 140 },
+        'NIBE F1355-43': { etas35: 170, etas55: 140 }
+      },
+      eau: {
+        'NIBE S1156-8': { etas35: 230, etas55: 200 },
+        'NIBE S1156-13': { etas35: 230, etas55: 230 },
+        'NIBE S1156-18': { etas35: 230, etas55: 200 },
+        'NIBE S1256-8': { etas35: 230, etas55: 200 },
+        'NIBE S1256-13': { etas35: 230, etas55: 230 },
+        'NIBE S1256-18': { etas35: 230, etas55: 200 },
+        'NIBE F1253-4': { etas35: 230, etas55: 200 },
+        'NIBE F1253-6': { etas35: 230, etas55: 200 },
+        'NIBE F1153-4': { etas35: 230, etas55: 200 },
+        'NIBE F1153-6': { etas35: 230, etas55: 200 },
+        'NIBE S1155-25': { etas35: 230, etas55: 170 },
+        'NIBE F1345-24': { etas35: 200, etas55: 170 },
+        'NIBE F1345-40': { etas35: 200, etas55: 170 },
+        'NIBE F1345-30': { etas35: 200, etas55: 140 },
+        'NIBE F1345-60': { etas35: 200, etas55: 140 },
+        'NIBE F1355-28': { etas35: 230, etas55: 170 },
+        'NIBE F1355-43': { etas35: 230, etas55: 170 }
+      }
+    };
 
-    <table>
-      <thead><tr><th>Élément</th><th>Détails</th><th class="right">Montant (€)</th></tr></thead>
-      <tbody>
-        <tr><td>Coût PAC NIBE (fourniture + pose)</td><td id="r-pac-detail">—</td><td class="right" id="r-pac">0</td></tr>
-        <tr><td>Coût captage (selon type)</td><td id="r-capt-detail">—</td><td class="right" id="r-capt">0</td></tr>
-        <tr><td><b>Total projet TTC</b></td><td>PAC + captage</td><td class="right" id="r-total">0</td></tr>
-        <tr><td>MaPrimeRénov’ estimée</td><td id="r-mpr-detail">Profil : —</td><td class="right" id="r-mpr">0</td></tr>
-        <tr><td>Prime CEE estimée</td><td id="r-cee-detail">—</td><td class="right" id="r-cee">0</td></tr>
-        <tr><td><b>Total des aides estimées</b></td><td>MPR + CEE</td><td class="right" id="r-aides">0</td></tr>
-        <tr><td><b>Reste à charge</b></td><td>Total projet − Total aides</td><td class="right" id="r-rac2"><b>0</b></td></tr>
-        <tr><td>Coût « remplacement à l’identique »</td><td>Chaudière gaz/fioul</td><td class="right" id="r-base">0</td></tr>
-        <tr><td><b>Plus-value vs remplacement</b></td><td>Reste à charge − Coût remplacement</td><td class="right" id="r-plusvalue" style="color:#059669">0</td></tr>
-      </tbody>
-    </table>
+    // Energies standard pour la prime CEE (kWh) selon le niveau d’efficacité
+    const ceeLevelsChauffage = [88800, 102300, 111400, 117900, 120900];
+    const ceeLevelsChauffageECS = [108100, 124600, 135600, 143500, 147200];
 
-    <!-- Section Amortissement (ajout si saisi) -->
-    <div id="amort-print" style="display:none">
-      <h3 style="margin-top:6mm">Amortissement (option)</h3>
-      <table>
-        <tbody>
-          <tr><td>Énergie thermique</td><td class="right" id="p-therm-kwh">0 kWh/an</td></tr>
-          <tr><td>Coût énergie actuel</td><td class="right text-red" id="p-actuel">0 €</td></tr>
-          <tr><td>Coût PAC (élec)</td><td class="right text-green" id="p-pac-eur">0 €</td></tr>
-          <tr><td>Économies / an</td><td class="right text-green" id="p-eco">0 €</td></tr>
-          <tr><td>Plus-value vs remplacement</td><td class="right" id="p-plus">0 €</td></tr>
-          <tr><td>Amortissement</td><td class="right text-green" id="p-years">—</td></tr>
-        </tbody>
-      </table>
-    </div>
+    let currentStep = 1;
+    const totalSteps = 7;
+    const state = {};
 
-    <div class="fine">
-      <p><b>Mentions :</b> Estimation <b>non engageante</b>. Calculs basés sur les <b>données déclarées</b> (coûts, revenus, composition du ménage, choix techniques) et des <b>hypothèses indicatives</b> (prix d’énergie, performances, barèmes). Les montants définitifs sont conditionnés aux justificatifs, critères techniques, contrôles et validations (ANAH pour MaPrimeRénov’, délégataire CEE). Le « bonus de la Prime énergie d’EDF » est intégré selon la <b>catégorie CEE</b>. Dossiers à déposer <b>avant travaux</b>. Période ciblée : <b>01/09/2025 → 31/12/2025</b>. Monogeste : remplacement chaudière gaz/fioul par PAC géothermique NIBE. Les tarifs d’énergie saisis priment ; à défaut, références possibles (gaz 0,1284 €/kWh, fioul 1,16 €/L, propane ≈ 0,243 €/kWh).</p>
-    </div>
-  </div>
-
-  <!-- PAGE 2 : Graphique coûts annuels -->
-  <div class="a4 page-break" id="chart-page" style="display:none">
-    <h2 style="text-align:center;margin:0 0 6mm">Comparaison des coûts annuels d’énergie (€)</h2>
-    <div id="bar-wrap-print">
-      <svg id="bar-svg-print" viewBox="0 0 800 800" preserveAspectRatio="none"></svg>
-    </div>
-    <div class="fine">
-      <p>Légende : Géothermie (vert), Gaz naturel (orange), Propane (rouge), Fioul (noir). Les coûts affichés sont annuels et fondés sur les données et hypothèses du dossier (voir page 1).</p>
-    </div>
-  </div>
-</section>
-
-<script>
-  /* Barèmes indicatifs MPR / CEE (peuvent être mis à jour) */
-  const thresholds={hors_idf:{1:{tm:16000,mo:20593,int:29148},2:{tm:23655,mo:30225,int:42848},3:{tm:28400,mo:36297,int:51293},4:{tm:33145,mo:42371,int:59738},5:{tm:37899,mo:48454,int:68181}},
-                    idf:{1:{tm:21411,mo:27656,int:38184},2:{tm:31441,mo:40544,int:56238},3:{tm:37793,mo:48731,int:67673},4:{tm:44145,mo:56927,int:79110},5:{tm:50497,mo:65123,int:90547}}};
-  const thresholdsCEE={idf:{1:{tm:23768,mo:28933},2:{tm:34884,mo:42463},3:{tm:41893,mo:51000},4:{tm:48914,mo:59549},5:{tm:55961,mo:68123},plus:{tm:7038,mo:8568}},
-                       hors_idf:{1:{tm:17173,mo:22015},2:{tm:25115,mo:32197},3:{tm:30206,mo:38719},4:{tm:35285,mo:45234},5:{tm:40388,mo:51775},plus:{tm:5094,mo:6525}}};
-
-  const $=id=>document.getElementById(id);
-  const val=id=>($(id)?.value||'').trim();
-  const num=id=>{const n=parseFloat((val(id)||'0').replace(/[^0-9.-]/g,''));return isNaN(n)?0:n};
-  const euro=n=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n||0);
-  const euro2=n=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:2}).format(n||0);
-  const fmt=n=>new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(n||0);
-
-  /* Profils MPR & CEE */
-  function autoProfil(region,taille,rfr){
-    const row=(thresholds[region]||{})[Math.min(5,Math.max(1,taille))];
-    if(!row){return{profil:'intermediaires',via:'barèmes à confirmer'}}
-    if(rfr<=row.tm)return{profil:'tres_modestes',via:`≤ TM (${row.tm})`};
-    if(rfr<=row.mo)return{profil:'modestes',via:`≤ MO (${row.mo})`};
-    if(rfr<=row.int)return{profil:'intermediaires',via:`≤ INT (${row.int})`};
-    return{profil:'superieurs',via:`> INT (${row.int})`};
-  }
-  function getProfilMPR(){const rfr=num('rfr');const taille=Math.max(1,parseInt(val('menage-nb')||'1',10));const region=val('region');return autoProfil(region,taille,rfr);}
-  function getCEECategorie(){
-    const region=val('region');const taille=Math.max(1,parseInt(val('menage-nb')||'1',10));const rfr=num('rfr');
-    const tab=thresholdsCEE[region];const base=tab[Math.min(5,taille)];const extra=Math.max(0,taille-5);
-    const tm=base.tm+extra*(tab.plus.tm);const mo=base.mo+extra*(tab.plus.mo);
-    if(rfr<=tm) return 'très modeste';
-    if(rfr<=mo) return 'modeste';
-    const row=(thresholds[region]||{})[Math.min(5,taille)];
-    if(row && rfr<=row.int) return 'revenu intermédiaire';
-    return 'revenu supérieur';
-  }
-  function calcCEE(){return (getCEECategorie()==='très modeste')?6000:5150}
-  function getMPRAmount(){const {profil}=getProfilMPR();const map={tres_modestes:11000,modestes:9000,intermediaires:6000,superieurs:0};return map[profil]??0}
-
-  /* Éligibilité (inclut ETAS) */
-  function checkEligibility(){
-    const isAppartement=document.querySelector('input[name="type-log"][value="Appartement"]').checked;
-    const isResidencePrincipale=document.querySelector('input[name="res-primary"]:checked')?.value==='Oui';
-    const c1=$('c1').checked,c2=$('c2').checked,c3=$('c3').checked,c4=$('c4').checked,c5=$('c5').checked,c6=$('c6').checked;
-    const issues=[];
-    if(isAppartement)issues.push("Type de logement : appartement (non éligible en monogeste géothermie standard).");
-    if(!isResidencePrincipale)issues.push("Résidence non principale : non éligible MPR/CEE.");
-    if(!c1)issues.push("Le geste doit être le remplacement chaudière par PAC géothermique NIBE.");
-    if(!c2)issues.push("Entreprise non RGE : condition indispensable.");
-    if(!c3)issues.push("Logement de moins de 15 ans : non éligible.");
-    if(!c4)issues.push("Dossier non déposé avant travaux : non éligible.");
-    if(!c5)issues.push("ETAS ≤ 154 % à 55 °C : non éligible.");
-    if(!c6)issues.push("ETAS ≤ 204 % à 35 °C : non éligible.");
-    return {eligible:issues.length===0,issues};
-  }
-
-  let LAST_RAC=0, LAST_PLUS=0, AMORT=null;
-
-  function remplir(target){
-    const pac=num('pac-fourn')+num('pac-mdo');
-    const capt=num('capt-fourn')+num('capt-mdo');
-    const total=pac+capt;
-
-    const elig=checkEligibility();
-    let mpr=0, cee=0, totalAides=0, catCEE='—', profilTxt='—', via='—';
-    if(elig.eligible){
-      mpr=getMPRAmount(); cee=calcCEE(); totalAides=mpr+cee; catCEE=getCEECategorie();
-      const p=getProfilMPR(); profilTxt=p.profil.replace('_',' '); via=p.via;
-    }
-
-    const base=num('base-remplacement');
-    const rac=Math.max(0,total-totalAides); LAST_RAC=rac;
-    const plus=rac-base; LAST_PLUS=plus;
-
-    if(target==='live'){
-      const typeTxt=$('type-pac').selectedOptions[0].text;
-      $('r-pac-detail-live').textContent=`Fourniture ${euro(num('pac-fourn'))} + MO ${euro(num('pac-mdo'))}`;
-      $('r-capt-detail-live').textContent=`${typeTxt} — Fourniture ${euro(num('capt-fourn'))} + Pose ${euro(num('capt-mdo'))}`;
-      $('r-pac-live').textContent=euro(pac); $('r-capt-live').textContent=euro(capt); $('r-total-live').textContent=euro(total);
-      $('r-mpr-detail-live').textContent=`Profil : ${profilTxt} (${via})`; $('r-mpr-live').textContent=euro(mpr);
-      $('r-cee-detail-live').textContent=elig.eligible?`bonus Prime énergie EDF (catégorie ${catCEE})`:'Non éligible'; $('r-cee-live').textContent=euro(cee);
-      $('r-aides-live').textContent=euro(totalAides); $('r-rac2-live').innerHTML='<b>'+euro(rac)+'</b>'; $('r-base-live').textContent=euro(base); $('r-plusvalue-live').textContent=euro(plus);
-      $('k-cat-live').textContent=catCEE; $('k-total-live').textContent=euro(total); $('k-aides-live').textContent=euro(totalAides); $('k-rac-live').textContent=euro(rac); $('k-plus-live').textContent=euro(plus);
-      const warn=$('elig-msg'); if(elig.issues.length){warn.style.display='block';warn.innerHTML='<b>Non éligible :</b><br>'+elig.issues.map(s=>'• '+s).join('<br>');}else{warn.style.display='none';warn.textContent='';}
-    }
-
-    if(target==='print'){
-      $('r-pac-detail').textContent=`Fourniture ${euro(num('pac-fourn'))} + MO ${euro(num('pac-mdo'))}`;
-      $('r-capt-detail').textContent=`${$('type-pac').selectedOptions[0].text} — Fourniture ${euro(num('capt-fourn'))} + Pose ${euro(num('capt-mdo'))}`;
-      $('r-pac').textContent=euro(pac); $('r-capt').textContent=euro(capt); $('r-total').textContent=euro(total);
-      $('r-mpr-detail').textContent=`Profil : ${profilTxt} (${via})`; $('r-mpr').textContent=euro(mpr);
-      $('r-cee-detail').textContent=elig.eligible?`bonus Prime énergie EDF (catégorie ${catCEE})`:'Non éligible'; $('r-cee').textContent=euro(cee);
-      $('r-aides').textContent=euro(totalAides); $('r-rac2').innerHTML='<b>'+euro(rac)+'</b>'; $('r-base').textContent=euro(base); $('r-plusvalue').textContent=euro(plus);
-      $('k-cat').textContent=catCEE; $('k-total').textContent=euro(total); $('k-aides').textContent=euro(totalAides); $('k-rac').textContent=euro(rac); $('k-plus').textContent=euro(plus);
-
-      if(AMORT){
-        $('amort-print').style.display='block';
-        $('p-therm-kwh').textContent = fmt(AMORT.thermKwh) + ' kWh/an';
-        $('p-actuel').textContent    = euro2(AMORT.costNow);
-        $('p-pac-eur').textContent   = euro2(AMORT.pacCost);
-        $('p-eco').textContent       = euro2(AMORT.savingsYear);
-        $('p-plus').textContent      = euro2(LAST_PLUS);
-        $('p-years').textContent     = AMORT.yearsText;
-
-        // page 2 visible
-        $('chart-page').style.display='block';
-        drawBarChart('bar-svg-print', AMORT.bars, true);
-      } else {
-        $('amort-print').style.display='none';
-        $('chart-page').style.display='none';
+    // Initialise l’interface de sélection des modèles selon le type de PAC
+    function initModeleOptions() {
+      const modeleSelect = document.getElementById('modele');
+      modeleSelect.innerHTML = '';
+      const type = document.getElementById('typePac').value;
+      const models = modelesData[type];
+      for (const model in models) {
+        const opt = document.createElement('option');
+        opt.value = model;
+        opt.textContent = model;
+        modeleSelect.appendChild(opt);
       }
     }
-  }
 
-  /* Wizard nav */
-  const steps=[...document.querySelectorAll('.step')]; let idx=0; const bar=$('bar'),info=$('progress-info'),title=$('step-title');
-  const TITLES=steps.map(s=>s.getAttribute('data-title')); const percent=()=>Math.round(((idx+1)/steps.length)*100);
-  function updateHead(){bar.style.width=percent()+"%";info.textContent=percent()+"%";title.textContent=`Étape ${idx+1} · ${TITLES[idx]}`;}
-  function show(i){steps[idx].classList.remove('active');idx=i;steps[idx].classList.add('active');updateHead();window.scrollTo({top:0,behavior:'smooth'})}
-  function validateStep(){const cur=steps[idx];const invalid=cur.querySelector(':invalid');if(invalid){invalid.reportValidity();return false}return true}
-  document.addEventListener('click',e=>{ if(e.target.matches('[data-next]')){ if(validateStep()) show(Math.min(idx+1,steps.length-1)); } if(e.target.matches('[data-prev]')){ show(Math.max(idx-1,0)); }});
-  updateHead();
-
-  // Voir résultat
-  $('btn-calc')?.addEventListener('click',()=>{
-    const required=['menage-nb','rfr'];
-    for(const id of required){const el=$(id); if(el && !el.checkValidity()){el.reportValidity(); return;}}
-    $('live').style.display='block'; remplir('live');
-    $('resultat').style.display='block'; $('amort').style.display='block';
-    window.scrollTo({top:$('live').offsetTop-8,behavior:'smooth'});
-  });
-
-  // Aperçu rapport (affiche le bloc A4 dans la page)
-  $('btn-preview')?.addEventListener('click',()=>{
-    remplir('print');
-    const rep=$('rapport-letter');
-    rep.style.display='block';
-    window.scrollTo({top:rep.offsetTop-8,behavior:'smooth'});
-  });
-
-  // Impression robuste
-  $('btn-print')?.addEventListener('click',()=>{
-    remplir('print');
-    const rep=$('rapport-letter');
-    const wasHidden = getComputedStyle(rep).display==='none';
-    rep.style.display='block';
-    setTimeout(()=>{
-      window.print();
-      setTimeout(()=>{ if(wasHidden){rep.style.display='none';} }, 300);
-    }, 150);
-  });
-
-  /* ===== Amortissement ===== */
-  const COP_GEO=5.5;          // interne (non affiché)
-  const KWH_PER_LITRE=10;
-
-  const PRICE_GAZ_REF = 0.1284;      // €/kWh (extrapolation si non saisi)
-  const PRICE_PROPANE = 2800/11520;  // ≈ 0.2431 €/kWh
-  const PRICE_FIOUL_KWH = 1.16/10;   // 0.116 €/kWh
-
-  $('amort-mode')?.addEventListener('change',()=>{
-    const m=val('amort-mode');
-    ['fioul','gaz','propane'].forEach(k=>{$('bloc-'+k).style.display=(m===k)?'flex':'none';});
-  });
-
-  function drawBarChart(svgId, bars, big=false){
-    const svg=$(svgId); if(!svg) return;
-    const W=800, H=big?800:280, PX=70, PY=40;
-    const labels=['Géothermie','Gaz naturel','Propane','Fioul'];
-    const colors=['#059669','#f59e0b','#dc2626','#111827'];
-    const vals=[bars.geo,bars.gaz,bars.propane,bars.fioul].map(v=>Math.max(0,v||0));
-    const max=Math.max(...vals,1);
-    const colSpace=(W-PX-20)/labels.length;
-    const bw=colSpace*0.55;
-
-    svg.innerHTML='';
-    // axes
-    svg.innerHTML += `<line x1="${PX}" y1="${H-PY}" x2="${W-10}" y2="${H-PY}" stroke="#94a3b8" stroke-width="1"/>`;
-    svg.innerHTML += `<line x1="${PX}" y1="${PY}" x2="${PX}" y2="${H-PY}" stroke="#94a3b8" stroke-width="1"/>`;
-
-    // y ticks
-    const levels=6;
-    for(let i=0;i<=levels;i++){
-      const y=H-PY - (H-PY-PY)*(i/levels);
-      const v=Math.round(max*(i/levels));
-      svg.innerHTML += `<line x1="${PX}" y1="${y}" x2="${W-10}" y2="${y}" stroke="#e5e7eb" stroke-width="1"/>`;
-      svg.innerHTML += `<text x="${PX-8}" y="${y+4}" font-size="${big?18:11}" text-anchor="end" fill="#475569">${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v)}</text>`;
+    // Met à jour la visibilité des champs selon l’énergie sélectionnée
+    function updateEnergyFields() {
+      const type = document.getElementById('energieType').value;
+      document.getElementById('fuelFields').style.display = 'none';
+      document.getElementById('gazFields').style.display = 'none';
+      document.getElementById('propaneFields').style.display = 'none';
+      if (type === 'fuel') {
+        document.getElementById('fuelFields').style.display = 'block';
+      } else if (type === 'gaz') {
+        document.getElementById('gazFields').style.display = 'block';
+      } else if (type === 'propane') {
+        document.getElementById('propaneFields').style.display = 'block';
+      }
     }
 
-    // bars
-    labels.forEach((lab,i)=>{
-      const v=vals[i];
-      const x=PX+10 + i*((W-PX-20)/labels.length);
-      const h=(H-PY-PY)*(v/max);
-      const y=H-PY - h;
-      svg.innerHTML += `<rect x="${x}" y="${y}" width="${bw}" height="${h}" fill="${colors[i]}"/>`;
-      svg.innerHTML += `<text x="${x+bw/2}" y="${H-PY+16}" font-size="${big?22:12}" text-anchor="middle" fill="#334155">${lab}</text>`;
-      svg.innerHTML += `<text x="${x+bw/2}" y="${y-8}" font-size="${big?22:12}" text-anchor="middle" fill="#0f172a">${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v)}</text>`;
+    // Determine la catégorie de revenu (très modeste, modeste, intermédiaire, supérieur)
+    function determineCategorie(revenu, foyers, isIDF) {
+      const bar = revenusBarème[isIDF ? 'IDF' : 'nonIDF'];
+      const idx = Math.min(foyers, 5) - 1; // position dans tableau (0-4)
+      // Calcule les seuils en fonction des personnes supplémentaires
+      function seuil(baseArr, incVal) {
+        if (foyers <= 5) {
+          return baseArr[idx];
+        }
+        const base = baseArr[4];
+        const extra = foyers - 5;
+        return base + extra * incVal;
+      }
+      const tRes = seuil(bar.tres, bar.supInc.tres);
+      const mRes = seuil(bar.modeste, bar.supInc.modeste);
+      const iRes = seuil(bar.inter, bar.supInc.inter);
+      if (revenu <= tRes) return 'tres-modeste';
+      if (revenu <= mRes) return 'modeste';
+      if (revenu <= iRes) return 'intermediaire';
+      return 'superieur';
+    }
+
+    // Determine la zone climatique
+    function determineZone(codePostal) {
+      let dep = codePostal.substring(0, 2);
+      // gestion Corse 2A/2B
+      if (codePostal.startsWith('2A') || codePostal.startsWith('2B')) {
+        dep = codePostal.substring(0, 2);
+      }
+      if (zoneH1.includes(dep)) return 'H1';
+      if (zoneH3.includes(dep)) return 'H3';
+      return 'H2';
+    }
+
+    // Détermine l’indice d’efficacité à partir de l’ETAS minimal
+    function getEfficiencyLevel(etas) {
+      if (etas >= 230) return 4;
+      if (etas >= 200) return 3;
+      if (etas >= 170) return 2;
+      if (etas >= 140) return 1;
+      if (etas >= 111) return 0;
+      return 0;
+    }
+
+    // Facteur correctif en fonction de la surface chauffée
+    function getSurfaceFactor(area) {
+      const a = parseFloat(area);
+      if (a < 70) return 0.5;
+      if (a < 90) return 0.7;
+      if (a < 110) return 1;
+      if (a < 130) return 1.1;
+      return 1.6;
+    }
+
+    // Coefficient de zone
+    function getZoneCoefficient(zone) {
+      if (zone === 'H1') return 1.2;
+      if (zone === 'H3') return 0.7;
+      return 1;
+    }
+
+    // Calcule la prime CEE et MaPrimeRenov
+    function calculAides() {
+      // récupération des informations stockées dans l’état
+      const type = state.typePac;
+      const mode = state.modele;
+      const temp = state.temperature;
+      const usage = state.usage;
+      const surface = parseFloat(state.surface);
+      const revenu = parseFloat(state.revenu);
+      const foyers = parseInt(state.foyer);
+      const isIDF = state.isIDF;
+      const zone = state.zoneClim;
+      // efficacité ETAS minimal pour le modèle choisi
+      const etasData = modelesData[type][mode];
+      let etas;
+      if (temp.startsWith('35')) {
+        etas = etasData.etas35;
+      } else {
+        etas = etasData.etas55;
+      }
+      const level = getEfficiencyLevel(etas);
+      // base kWh en fonction de l’usage
+      let baseKwh = (usage === 'ecs') ? ceeLevelsChauffageECS[level] : ceeLevelsChauffage[level];
+      // on multiplie par surface factor et zone coefficient et bonification x5
+      const surfFactor = getSurfaceFactor(surface);
+      const zoneCoef = getZoneCoefficient(zone);
+      const kwhCumac = baseKwh * surfFactor * zoneCoef * 5;
+      const mwhCumac = kwhCumac / 1000;
+      // catégorie de revenu
+      const categorie = determineCategorie(revenu, foyers, isIDF);
+      // barème financier exprimé en euros par MWh cumac
+      // Les montants officiels sont d’environ 8,26 €/MWh pour les revenus très modestes (précaires)
+      // et de 7,02 €/MWh pour les revenus modestes et intermédiaires. Les revenus supérieurs ne sont pas éligibles.
+      let tarifMwh;
+      if (categorie === 'tres-modeste') {
+        tarifMwh = 8.26; // 8,26 €/MWh cumac
+      } else if (categorie === 'modeste' || categorie === 'intermediaire') {
+        tarifMwh = 7.02; // 7,02 €/MWh cumac
+      } else {
+        tarifMwh = 0; // revenus supérieurs : non éligible
+      }
+      const primeCEE = mwhCumac * tarifMwh;
+      // MaPrimeRenov
+      let primeMPR;
+      if (categorie === 'tres-modeste') primeMPR = 11000;
+      else if (categorie === 'modeste') primeMPR = 9000;
+      else if (categorie === 'intermediaire') primeMPR = 6000;
+      else primeMPR = 0;
+      return { categorie, primeCEE, primeMPR, mwhCumac, kwhCumac };
+    }
+
+    // Calcule les coûts et reste à charge
+    function calculFinance() {
+      const aides = calculAides();
+      const coutFourniture = parseFloat(state.coutFourniture);
+      const coutMO = parseFloat(state.coutMO);
+      const coutForage = parseFloat(state.coutForage);
+      const invest = coutFourniture + coutMO + coutForage;
+      const primeTot = aides.primeCEE + aides.primeMPR;
+      const resteCharge = invest - primeTot;
+      const coutChaudiere = parseFloat(state.coutChaudiere);
+      const plusValue = resteCharge - coutChaudiere;
+      return { invest, primeCEE: aides.primeCEE, primeMPR: aides.primeMPR, primeTot, resteCharge, plusValue, categorie: aides.categorie, mwhCumac: aides.mwhCumac };
+    }
+
+    // Calcule l’amortissement en fonction de l’énergie choisie
+    function calculAmortissement() {
+      const type = state.energieType;
+      let thermalEnergy; // en kWh thermique annuel
+      let coutEnergy;
+      let costDetails = {};
+      const defaultFuelPrice = 1.16;
+      const defaultGazPrice = 0.1284;
+      const defaultGazAbonnement = 250;
+      const defaultPropanePrice = 3353.4; // prix par tonne calculé pour 0,243 €/kWh
+      const defaultPropaneAbonnement = 250;
+      const defaultElecPrice = 0.20;
+      // Détermine le COP (Coefficient de performance) pour la géothermie selon la température de fonctionnement.
+      // Si la température sélectionnée commence par "35", on utilise un COP de 6,5 (35 °C). Sinon, un COP de 5 (55 °C ou 55r).
+      let cop = 5;
+      if (state.temperature && state.temperature.startsWith('35')) {
+        cop = 6.5;
+      }
+      if (type === 'fuel') {
+        const litres = parseFloat(state.fuelLitres);
+        const prixLitre = parseFloat(state.fuelPrix);
+        const prixElec = parseFloat(state.fuelElecPrix);
+        thermalEnergy = litres * 10;
+        coutEnergy = litres * prixLitre;
+        costDetails.fuel = { consommation: litres, cout: coutEnergy, unit: 'L', prixUnit: prixLitre };
+        // gaz avec valeurs par défaut
+        const gazCons = thermalEnergy; // 1 kWh thermique = 1 kWh gaz naturel
+        const gazCost = gazCons * defaultGazPrice + defaultGazAbonnement;
+        costDetails.gaz = { consommation: gazCons, cout: gazCost, unit: 'kWh', prixUnit: defaultGazPrice, abonnement: defaultGazAbonnement };
+        // propane avec valeurs par défaut
+        const propaneConsTon = thermalEnergy / (13.8 * 1000);
+        const propaneCost = propaneConsTon * defaultPropanePrice + defaultPropaneAbonnement;
+        costDetails.propane = { consommation: propaneConsTon, cout: propaneCost, unit: 't', prixUnit: defaultPropanePrice, abonnement: defaultPropaneAbonnement };
+        // géothermie
+        const geothKwh = thermalEnergy / cop;
+        const geothCost = geothKwh * prixElec;
+        costDetails.geothermie = { consommation: geothKwh, cout: geothCost, unit: 'kWhélec', prixUnit: prixElec };
+      } else if (type === 'gaz') {
+        const kwhGaz = parseFloat(state.gazKwh);
+        const prixGaz = parseFloat(state.gazPrix);
+        const aboGaz = parseFloat(state.gazAbonnement);
+        const prixElec = parseFloat(state.gazElecPrix);
+        thermalEnergy = kwhGaz; // 1 kWh gaz = 1 kWh thermique
+        coutEnergy = kwhGaz * prixGaz + aboGaz;
+        costDetails.gaz = { consommation: kwhGaz, cout: coutEnergy, unit: 'kWh', prixUnit: prixGaz, abonnement: aboGaz };
+        // fuel default
+        const fuelLitres = thermalEnergy / 10;
+        const fuelCost = fuelLitres * defaultFuelPrice;
+        costDetails.fuel = { consommation: fuelLitres, cout: fuelCost, unit: 'L', prixUnit: defaultFuelPrice };
+        // propane default
+        const propaneConsTon = thermalEnergy / (13.8 * 1000);
+        const propaneCost = propaneConsTon * defaultPropanePrice + defaultPropaneAbonnement;
+        costDetails.propane = { consommation: propaneConsTon, cout: propaneCost, unit: 't', prixUnit: defaultPropanePrice, abonnement: defaultPropaneAbonnement };
+        // géothermie
+        const geothKwh = thermalEnergy / cop;
+        const geothCost = geothKwh * prixElec;
+        costDetails.geothermie = { consommation: geothKwh, cout: geothCost, unit: 'kWhélec', prixUnit: prixElec };
+      } else if (type === 'propane') {
+        const tonnes = parseFloat(state.propaneTonnes);
+        const prixT = parseFloat(state.propanePrix);
+        const aboP = parseFloat(state.propaneAbonnement);
+        const prixElec = parseFloat(state.propaneElecPrix);
+        thermalEnergy = tonnes * 1000 * 13.8;
+        coutEnergy = tonnes * prixT + aboP;
+        costDetails.propane = { consommation: tonnes, cout: coutEnergy, unit: 't', prixUnit: prixT, abonnement: aboP };
+        // fuel default
+        const fuelLitres = thermalEnergy / 10;
+        const fuelCost = fuelLitres * defaultFuelPrice;
+        costDetails.fuel = { consommation: fuelLitres, cout: fuelCost, unit: 'L', prixUnit: defaultFuelPrice };
+        // gaz default
+        const gazCons = thermalEnergy;
+        const gazCost = gazCons * defaultGazPrice + defaultGazAbonnement;
+        costDetails.gaz = { consommation: gazCons, cout: gazCost, unit: 'kWh', prixUnit: defaultGazPrice, abonnement: defaultGazAbonnement };
+        // géothermie
+        const geothKwh = thermalEnergy / cop;
+        const geothCost = geothKwh * prixElec;
+        costDetails.geothermie = { consommation: geothKwh, cout: geothCost, unit: 'kWhélec', prixUnit: prixElec };
+      }
+      // calcul des émissions de CO2
+      const emissionFactors = { fuel: 0.314, gaz: 0.243, propane: 0.27, electric: 0.053 };
+      let emissionsOld = 0;
+      let emissionsGeo = 0;
+      let emissionsSaved = 0;
+      if (type === 'fuel' || type === 'gaz' || type === 'propane') {
+        // émissions du système actuel (kWh thermique * facteur)
+        emissionsOld = thermalEnergy * emissionFactors[type];
+        // géothermie utilise la consommation électrique correspondante
+        const geothKwh = costDetails.geothermie ? costDetails.geothermie.consommation : thermalEnergy / cop;
+        emissionsGeo = geothKwh * emissionFactors.electric;
+        emissionsSaved = emissionsOld - emissionsGeo;
+      }
+      return { thermalEnergy, coutEnergy, costDetails, emissionsOld, emissionsGeo, emissionsSaved };
+    }
+
+    // Met à jour la progression
+    function updateProgress() {
+      const percent = (currentStep - 1) / (totalSteps - 1) * 100;
+      document.getElementById('progress').style.width = percent + '%';
+    }
+
+    // Passe à l’étape suivante après validation
+    function nextStep(step) {
+      if (!validateStep(step)) return;
+      document.getElementById(`step${step}`).classList.remove('active');
+      currentStep = Math.min(totalSteps, step + 1);
+      document.getElementById(`step${currentStep}`).classList.add('active');
+      updateProgress();
+      // actions spécifiques lors de certaines transitions
+      if (currentStep === 4) {
+        // Lors de l'arrivée sur le choix du modèle, on rafraîchit la liste des modèles
+        initModeleOptions();
+      }
+      if (currentStep === 7) {
+        // Lorsque l'on affiche les résultats finaux
+        afficherResultats();
+      }
+    }
+
+    function prevStep(step) {
+      document.getElementById(`step${step}`).classList.remove('active');
+      currentStep = Math.max(1, step - 1);
+      document.getElementById(`step${currentStep}`).classList.add('active');
+      updateProgress();
+    }
+
+    // Validation par étape et enregistrement de l’état
+    function validateStep(step) {
+      if (step === 1) {
+        // Vérification du consentement et du code postal
+        if (!document.getElementById('engagement').checked) {
+          alert('Veuillez confirmer que vous remplissez les conditions préalables.');
+          return false;
+        }
+        const code = document.getElementById('codePostal').value.trim();
+        if (!code || code.length < 2) {
+          alert('Veuillez saisir un code postal valide.');
+          return false;
+        }
+        // déterminer IDF et zone climatique
+        const dep = code.substring(0, 2);
+        const idfDeps = ['75','77','78','91','92','93','94','95'];
+        const isIDF = idfDeps.includes(dep);
+        const zone = determineZone(code);
+        state.codePostal = code;
+        state.isIDF = isIDF;
+        state.zoneClim = zone;
+      } else if (step === 2) {
+        // Saisie du revenu, nombre de personnes et surface
+        const revenuVal = parseFloat(document.getElementById('revenu').value);
+        const foyersVal = parseInt(document.getElementById('foyer').value);
+        const surfaceVal = parseFloat(document.getElementById('surface').value);
+        if (isNaN(revenuVal) || isNaN(foyersVal) || isNaN(surfaceVal)) {
+          alert('Veuillez saisir le revenu fiscal, le nombre de personnes et la surface chauffée.');
+          return false;
+        }
+        state.revenu = revenuVal;
+        state.foyer = foyersVal;
+        state.surface = surfaceVal;
+      } else if (step === 3) {
+        // Type de PAC, température et usage
+        const type = document.getElementById('typePac').value;
+        const temp = document.getElementById('temperature').value;
+        const usage = document.getElementById('usage').value;
+        state.typePac = type;
+        state.temperature = temp;
+        state.usage = usage;
+      } else if (step === 4) {
+        // Choix du modèle
+        const modele = document.getElementById('modele').value;
+        state.modele = modele;
+      } else if (step === 5) {
+        // Coûts d'installation (autoriser des champs vides => 0)
+        let coutFourniture = parseFloat(document.getElementById('coutFourniture').value);
+        let coutMO = parseFloat(document.getElementById('coutMO').value);
+        let coutForage = parseFloat(document.getElementById('coutForage').value);
+        let coutChaudiere = parseFloat(document.getElementById('coutChaudiere').value);
+        coutFourniture = isNaN(coutFourniture) ? 0 : coutFourniture;
+        coutMO = isNaN(coutMO) ? 0 : coutMO;
+        coutForage = isNaN(coutForage) ? 0 : coutForage;
+        coutChaudiere = isNaN(coutChaudiere) ? 0 : coutChaudiere;
+        state.coutFourniture = coutFourniture;
+        state.coutMO = coutMO;
+        state.coutForage = coutForage;
+        state.coutChaudiere = coutChaudiere;
+      } else if (step === 6) {
+        // Paramètres d’amortissement (utiliser valeurs par défaut si champs vides)
+        const type = document.getElementById('energieType').value;
+        state.energieType = type;
+        if (type === 'fuel') {
+          // Remplace les virgules éventuelles par des points avant d'analyser
+          let litres = parseFloat(document.getElementById('fuelLitres').value.replace(',', '.'));
+          let prix = parseFloat(document.getElementById('fuelPrix').value.replace(',', '.'));
+          let prixElec = parseFloat(document.getElementById('fuelElecPrix').value.replace(',', '.'));
+          // valeurs par défaut si vide
+          litres = isNaN(litres) ? 2000 : litres;
+          prix = isNaN(prix) ? 1.16 : prix;
+          prixElec = isNaN(prixElec) ? 0.20 : prixElec;
+          state.fuelLitres = litres;
+          state.fuelPrix = prix;
+          state.fuelElecPrix = prixElec;
+        } else if (type === 'gaz') {
+          let kwh = parseFloat(document.getElementById('gazKwh').value.replace(',', '.'));
+          let prix = parseFloat(document.getElementById('gazPrix').value.replace(',', '.'));
+          let abo = parseFloat(document.getElementById('gazAbonnement').value.replace(',', '.'));
+          let prixElec = parseFloat(document.getElementById('gazElecPrix').value.replace(',', '.'));
+          kwh = isNaN(kwh) ? 20000 : kwh;
+          prix = isNaN(prix) ? 0.1284 : prix;
+          abo = isNaN(abo) ? 250 : abo;
+          prixElec = isNaN(prixElec) ? 0.20 : prixElec;
+          state.gazKwh = kwh;
+          state.gazPrix = prix;
+          state.gazAbonnement = abo;
+          state.gazElecPrix = prixElec;
+        } else if (type === 'propane') {
+          let tonnes = parseFloat(document.getElementById('propaneTonnes').value.replace(',', '.'));
+          let prixT = parseFloat(document.getElementById('propanePrix').value.replace(',', '.'));
+          let abo = parseFloat(document.getElementById('propaneAbonnement').value.replace(',', '.'));
+          let prixElec = parseFloat(document.getElementById('propaneElecPrix').value.replace(',', '.'));
+          tonnes = isNaN(tonnes) ? 1.2 : tonnes;
+          prixT = isNaN(prixT) ? 3353.4 : prixT;
+          abo = isNaN(abo) ? 250 : abo;
+          prixElec = isNaN(prixElec) ? 0.20 : prixElec;
+          state.propaneTonnes = tonnes;
+          state.propanePrix = prixT;
+          state.propaneAbonnement = abo;
+          state.propaneElecPrix = prixElec;
+        }
+      }
+      return true;
+    }
+
+    // Affiche les résultats financiers et d’amortissement
+    function afficherResultats() {
+      const finance = calculFinance();
+      const amort = calculAmortissement();
+      // Résumé financier
+      const finDiv = document.getElementById('resultFinance');
+      finDiv.innerHTML = '';
+      let html = '<h3>Résultats de simulation</h3>';
+      html += '<table><tr><th>Élément</th><th>Montant (€)</th></tr>';
+      // Détaille chaque composant de l’investissement
+      html += `<tr><td>Coût fourniture PAC</td><td>${state.coutFourniture.toFixed(2)}</td></tr>`;
+      html += `<tr><td>Coût main d’œuvre</td><td>${state.coutMO.toFixed(2)}</td></tr>`;
+      html += `<tr><td>Coût forage</td><td>${state.coutForage.toFixed(2)}</td></tr>`;
+      html += `<tr><td>Investissement total</td><td>${finance.invest.toFixed(2)}</td></tr>`;
+      // Affiche les primes sans mise en valeur individuelle
+      html += `<tr><td>Prime CEE</td><td>${finance.primeCEE.toFixed(2)}</td></tr>`;
+      html += `<tr><td>MaPrimeRénov’</td><td>${finance.primeMPR.toFixed(2)}</td></tr>`;
+      // Mise en valeur du total des primes
+      // Mise en valeur du total des primes avec un span pour préserver l’alignement
+      html += `<tr><td>Total des primes</td><td><span class="highlight-prime">${finance.primeTot.toFixed(2)}</span></td></tr>`;
+      // Mise en valeur du reste à charge avec un encadrement vert
+      html += `<tr><td>Reste à charge</td><td><span class="highlight-charge">${finance.resteCharge.toFixed(2)}</span></td></tr>`;
+      html += `<tr><td>Coût remplacement chaudière équivalente</td><td>${state.coutChaudiere.toFixed(2)}</td></tr>`;
+      const pvClass = finance.plusValue >= 0 ? 'highlight-plus' : 'highlight-minus';
+      html += `<tr><td>Différence (géothermie – remplacement)</td><td><span class="${pvClass}">${finance.plusValue.toFixed(2)}</span></td></tr>`;
+      html += '</table>';
+      // Informations complémentaires : catégorie, zones et énergie cumulée
+      html += `<p>Catégorie de revenu : <strong>${finance.categorie}</strong></p>`;
+      // Ajoute la zone géographique (Île‑de‑France ou hors IDF)
+      const zoneGeo = state.isIDF ? 'Île‑de‑France' : 'Hors Île‑de‑France';
+      html += `<p>Zone géographique : <strong>${zoneGeo}</strong></p>`;
+      html += `<p>Zone climatique : <strong>${state.zoneClim}</strong> (facteur zone ${getZoneCoefficient(state.zoneClim)})</p>`;
+      html += `<p>Surface chauffée : <strong>${state.surface} m²</strong> (facteur surface ${getSurfaceFactor(state.surface)})</p>`;
+      const kwhCumac = finance.mwhCumac * 1000;
+      html += `<p>Énergie cumulée CEE : <strong>${kwhCumac.toFixed(0)}</strong> kWh cumac (${finance.mwhCumac.toFixed(2)} MWh)</p>`;
+      finDiv.innerHTML = html;
+      // Résumé amortissement
+      const amortDiv = document.getElementById('resultAmort');
+      amortDiv.innerHTML = '';
+      let h = '<h3>Amortissement et consommation</h3>';
+      // Tableau des coûts comparés
+      h += '<table><tr><th>Énergie</th><th>Consommation</th><th>Coût annuel (€)</th></tr>';
+      const c = amort.costDetails;
+      // Format consumption with units
+      function formatCons(val, unit) {
+        if (unit === 'kWh' || unit === 'kWhélec') {
+          return val.toFixed(0) + ' ' + unit;
+        }
+        return val.toFixed(2) + ' ' + unit;
+      }
+      // Afficher uniquement l’énergie sélectionnée et la géothermie
+      const selected = state.energieType;
+      if (selected === 'fuel' && c.fuel) {
+        h += `<tr><td>Fioul</td><td>${formatCons(c.fuel.consommation, c.fuel.unit)}</td><td>${c.fuel.cout.toFixed(2)}</td></tr>`;
+      }
+      if (selected === 'gaz' && c.gaz) {
+        h += `<tr><td>Gaz naturel</td><td>${formatCons(c.gaz.consommation, c.gaz.unit)}</td><td>${c.gaz.cout.toFixed(2)}</td></tr>`;
+      }
+      if (selected === 'propane' && c.propane) {
+        h += `<tr><td>Propane</td><td>${formatCons(c.propane.consommation, c.propane.unit)}</td><td>${c.propane.cout.toFixed(2)}</td></tr>`;
+      }
+      // Toujours afficher la géothermie
+      if (c.geothermie) {
+        h += `<tr><td>Géothermie (élec.)</td><td>${formatCons(c.geothermie.consommation, c.geothermie.unit)}</td><td>${c.geothermie.cout.toFixed(2)}</td></tr>`;
+      }
+      h += '</table>';
+      // Calcul économie annuelle et amortissement
+      const coutActuel = amort.coutEnergy;
+      const coutGeo = c.geothermie ? c.geothermie.cout : 0;
+      const economie = coutActuel - coutGeo;
+      const plusVal = finance.plusValue;
+      let amorti = '∞';
+      if (economie > 0) {
+        amorti = (plusVal / economie).toFixed(1);
+      }
+      h += `<p>Coût annuel actuel : <strong>${coutActuel.toFixed(2)}</strong> €</p>`;
+      h += `<p>Coût annuel avec géothermie : <strong>${coutGeo.toFixed(2)}</strong> €</p>`;
+      h += `<p>Économie annuelle estimée : <strong>${economie.toFixed(2)}</strong> €</p>`;
+      h += `<p>Amortissement estimé (années) : <span class="highlight-amort">${amorti}</span></p>`;
+      // Émissions évitées
+      if (amort.emissionsSaved && amort.emissionsSaved > 0) {
+        h += `<p>Émissions évitées : <strong>${amort.emissionsSaved.toFixed(0)}</strong> kg CO₂/an</p>`;
+      }
+      amortDiv.innerHTML = h;
+      // Graphique de comparaison des coûts annuels (€/an)
+      // On prépare les coûts par énergie pour l’histogramme : géothermie en premier, puis fioul, gaz naturel et propane
+      const barLabels = [];
+      const barValues = [];
+      if (c.geothermie) {
+        barLabels.push('Géothermie');
+        barValues.push(c.geothermie.cout);
+      }
+      // Ajout du fioul (coût annuel de référence) : s'il n'existe pas, on met zéro pour ne pas fausser le graphique
+      barLabels.push('Fioul');
+      barValues.push(c.fuel ? c.fuel.cout : 0);
+      // Ajout du gaz naturel
+      barLabels.push('Gaz naturel');
+      barValues.push(c.gaz ? c.gaz.cout : 0);
+      // Ajout du propane
+      barLabels.push('Propane');
+      barValues.push(c.propane ? c.propane.cout : 0);
+      // Dessine un graphique à barres verticales avec un élément SVG afin que les couleurs soient conservées à l'impression
+      drawSVGColumnChart('consumptionChart', barLabels, barValues);
+    }
+
+    // Définition d'un graphique horizontal (barres) utilisé pour les coûts et les consommations.
+    // Ce graphique crée une liste de barres horizontales où la géothermie est mise en évidence par une couleur différente.
+    function drawBarGraph(containerId, labels, values) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      // Nettoie le conteneur
+      container.innerHTML = '';
+      // Calcul de la valeur maximale pour normaliser la largeur
+      const maxVal = Math.max(...values);
+      // Création du wrapper pour l'ensemble des lignes
+      const wrapper = document.createElement('div');
+      wrapper.className = 'chart-bars-horizontal';
+      labels.forEach((label, idx) => {
+        // Création de la ligne de graphique
+        const row = document.createElement('div');
+        row.className = 'chart-row';
+        // Étiquette à gauche
+        const lbl = document.createElement('div');
+        lbl.className = 'row-label';
+        lbl.textContent = label;
+        row.appendChild(lbl);
+        // Bar conteneur
+        const bar = document.createElement('div');
+        bar.className = 'row-bar';
+        // Bar remplissage
+        const fill = document.createElement('div');
+        fill.className = 'row-fill ' + (label.toLowerCase().includes('géothermie') ? 'row-fill-geothermie' : 'row-fill-default');
+        const width = maxVal > 0 ? (values[idx] / maxVal) * 100 : 0;
+        fill.style.width = width + '%';
+        bar.appendChild(fill);
+        row.appendChild(bar);
+        wrapper.appendChild(row);
+      });
+      container.appendChild(wrapper);
+    }
+
+    /**
+     * Crée un graphique en colonnes verticales afin de visualiser les consommations avec des couleurs distinctes par énergie.
+     * @param {string} containerId ID du conteneur HTML où insérer le graphique
+     * @param {string[]} labels Liste des étiquettes (Fioul, Gaz naturel, Propane, Géothermie)
+     * @param {number[]} values Valeurs associées à chaque étiquette (en kWh)
+     */
+    function drawColumnChart(containerId, labels, values) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      // Vide le conteneur
+      container.innerHTML = '';
+      // Calcul du maximum pour normaliser la hauteur des barres
+      const maxVal = Math.max(...values);
+      // Création du conteneur vertical pour les colonnes
+      const chart = document.createElement('div');
+      chart.className = 'vertical-chart';
+      labels.forEach((label, idx) => {
+        const column = document.createElement('div');
+        column.className = 'vertical-column';
+        // Valeur numérique au-dessus de la barre
+        const valueDiv = document.createElement('div');
+        valueDiv.className = 'vertical-value';
+        valueDiv.textContent = Math.round(values[idx]).toLocaleString() + ' €';
+        // Barre colorée
+        const bar = document.createElement('div');
+        bar.className = 'vertical-bar';
+        const height = maxVal > 0 ? (values[idx] / maxVal) * 100 : 0;
+        bar.style.height = height + '%';
+        // Couleur selon l’énergie
+        let color;
+        const lower = label.toLowerCase();
+        // Couleurs personnalisées pour le graphique en barres :
+        // Fioul en orange (#fb8c00), Gaz naturel en violet (#8e24aa), Propane en rouge (#e53935), Géothermie en vert foncé (#00695c).
+        if (lower.includes('fioul')) {
+          color = '#fb8c00'; // orange pour le fioul
+        } else if (lower.includes('gaz')) {
+          color = '#8e24aa'; // violet pour le gaz naturel
+        } else if (lower.includes('propane')) {
+          color = '#e53935'; // rouge pour le propane
+        } else if (lower.includes('géothermie') || lower.includes('geothermie')) {
+          color = '#00695c'; // vert foncé pour la géothermie
+        } else {
+          color = '#00897b';
+        }
+        bar.style.backgroundColor = color;
+        // Crée un conteneur flexible pour forcer la barre à s’ancrer en bas
+        const barWrapper = document.createElement('div');
+        barWrapper.style.flexGrow = '1';
+        barWrapper.style.display = 'flex';
+        barWrapper.style.alignItems = 'flex-end';
+        barWrapper.appendChild(bar);
+        // Étiquette sous la barre
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'vertical-label';
+        labelDiv.textContent = label;
+        // Assemble les éléments dans la colonne
+        column.appendChild(valueDiv);
+        column.appendChild(barWrapper);
+        column.appendChild(labelDiv);
+        chart.appendChild(column);
+      });
+      container.appendChild(chart);
+    }
+
+    /**
+     * Crée un graphique en colonnes verticales au format SVG.
+     * Ce graphique est imprimable et conserve les couleurs lors de l'édition PDF.
+     * @param {string} containerId ID du conteneur HTML où insérer le graphique
+     * @param {string[]} labels Étiquettes (Fioul, Gaz naturel, Propane, Géothermie)
+     * @param {number[]} values Valeurs associées à chaque étiquette (en euros)
+     */
+    function drawSVGColumnChart(containerId, labels, values) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+      const maxVal = Math.max(...values);
+      // Dimensions du graphique
+      const svgWidth = container.clientWidth || 400;
+      const svgHeight = 200;
+      const paddingTop = 20;
+      const paddingBottom = 40;
+      const barAreaHeight = svgHeight - paddingTop - paddingBottom;
+      const barWidth = svgWidth / labels.length * 0.5;
+      const barGap = (svgWidth / labels.length - barWidth);
+      // Créer l'élément SVG
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('width', '100%');
+      svg.setAttribute('height', svgHeight);
+      // Parcours des valeurs
+      labels.forEach((label, idx) => {
+        const x = barGap / 2 + idx * (barWidth + barGap);
+        const barHeight = maxVal > 0 ? (values[idx] / maxVal) * barAreaHeight : 0;
+        const y = paddingTop + (barAreaHeight - barHeight);
+        // Déterminer la couleur
+        let color;
+        const lower = label.toLowerCase();
+        if (lower.includes('fioul')) {
+          color = '#fb8c00';
+        } else if (lower.includes('gaz')) {
+          color = '#8e24aa';
+        } else if (lower.includes('propane')) {
+          color = '#e53935';
+        } else if (lower.includes('géothermie') || lower.includes('geothermie')) {
+          color = '#00695c';
+        } else {
+          color = '#00897b';
+        }
+        // Rectangle de barre
+        const rect = document.createElementNS(svgNS, 'rect');
+        rect.setAttribute('x', x);
+        rect.setAttribute('y', y);
+        rect.setAttribute('width', barWidth);
+        rect.setAttribute('height', barHeight);
+        rect.setAttribute('fill', color);
+        svg.appendChild(rect);
+        // Texte pour la valeur
+        const valueText = document.createElementNS(svgNS, 'text');
+        valueText.setAttribute('x', x + barWidth / 2);
+        valueText.setAttribute('y', y - 5);
+        valueText.setAttribute('text-anchor', 'middle');
+        valueText.setAttribute('font-size', '10');
+        valueText.textContent = Math.round(values[idx]).toLocaleString() + ' €';
+        svg.appendChild(valueText);
+        // Étiquette de l'énergie
+        const labelText = document.createElementNS(svgNS, 'text');
+        labelText.setAttribute('x', x + barWidth / 2);
+        labelText.setAttribute('y', svgHeight - paddingBottom + 15);
+        labelText.setAttribute('text-anchor', 'middle');
+        labelText.setAttribute('font-size', '10');
+        labelText.textContent = label;
+        svg.appendChild(labelText);
+      });
+      container.appendChild(svg);
+    }
+
+    /**
+     * Crée un graphique à barres horizontales avec des valeurs numériques pour la consommation.
+     * Chaque énergie est représentée par une couleur spécifique. Les valeurs sont affichées à droite des barres.
+     * @param {string} containerId ID du conteneur HTML où insérer le graphique
+     * @param {string[]} labels Liste des étiquettes d’énergie
+     * @param {number[]} values Valeurs (kWh) associées à chaque énergie
+     */
+    function drawConsumptionBars(containerId, labels, values) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+      const maxVal = Math.max(...values);
+      // Couleurs mappées par étiquette
+      const colors = {
+        fioul: '#e53935',
+        'gaz naturel': '#8e24aa',
+        propane: '#fb8c00',
+        géothermie: '#00695c',
+        geothermie: '#00695c'
+      };
+      const wrapper = document.createElement('div');
+      wrapper.className = 'chart-bars-horizontal';
+      labels.forEach((label, idx) => {
+        const row = document.createElement('div');
+        row.className = 'chart-row';
+        // Étiquette (colonne fixe)
+        const lbl = document.createElement('div');
+        lbl.className = 'row-label';
+        lbl.textContent = label;
+        row.appendChild(lbl);
+        // Conteneur de la barre (prend toute la largeur disponible)
+        const barContainer = document.createElement('div');
+        barContainer.className = 'row-bar';
+        barContainer.style.flexGrow = '1';
+        // Remplissage coloré
+        const fill = document.createElement('div');
+        fill.className = 'row-fill';
+        const width = maxVal > 0 ? (values[idx] / maxVal) * 100 : 0;
+        fill.style.width = width + '%';
+        const key = label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        fill.style.backgroundColor = colors[key] || '#00897b';
+        barContainer.appendChild(fill);
+        row.appendChild(barContainer);
+        // Valeur numérique à droite
+        const val = document.createElement('div');
+        val.className = 'row-value';
+        val.textContent = values[idx].toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' kWh';
+        row.appendChild(val);
+        wrapper.appendChild(row);
+      });
+      container.appendChild(wrapper);
+    }
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+      initModeleOptions();
+      updateEnergyFields();
+      updateProgress();
     });
-  }
-
-  $('btn-amort-calc')?.addEventListener('click',()=>{
-    const mode = val('amort-mode');
-    let thermKwh=0, pacKwh=0, costNow=0, pacCost=0, elecPrice=0;
-
-    if(mode==='fioul'){
-      const litres = num('fioul-litres');
-      const prixL  = num('fioul-prix');
-      elecPrice    = num('elec-prix-fioul');
-      thermKwh = litres * KWH_PER_LITRE;
-      costNow  = litres * prixL;
-      pacKwh   = thermKwh / COP_GEO;
-      pacCost  = pacKwh * elecPrice;
-    } else if(mode==='gaz'){
-      const gazK   = num('gaz-kwh');
-      const prixG  = num('gaz-prix');
-      const aboG   = num('gaz-abo');
-      elecPrice    = num('elec-prix-gaz');
-      thermKwh = gazK;
-      costNow  = gazK * prixG + aboG;
-      pacKwh   = thermKwh / COP_GEO;
-      pacCost  = pacKwh * elecPrice;
-    } else if(mode==='propane'){
-      const t      = num('prop-tonnes');
-      const prixT  = num('prop-prix-tonne');
-      const aboP   = num('prop-abo');
-      elecPrice    = num('elec-prix-prop');
-      const kwh    = t * 11520;
-      thermKwh     = kwh;
-      costNow      = (prixT>0 ? t*prixT : kwh*PRICE_PROPANE) + aboP;
-      pacKwh       = thermKwh / COP_GEO;
-      pacCost      = pacKwh * elecPrice;
-    }
-
-    const savingsYear = costNow - pacCost;                // Économies annuelles €
-    const plusValue   = (LAST_RAC || 0) - num('base-remplacement'); // plus-value vs remplacement
-    let yearsText = '—';
-    if(savingsYear > 0){
-      const years = plusValue / savingsYear;
-      yearsText = (isFinite(years)) ? years.toFixed(1)+' ans' : '—';
-    } else yearsText='non calculable';
-
-    // UI live amortissement
-    $('amort-therm-kwh').textContent = fmt(thermKwh) + ' kWh/an';
-    $('amort-pac-kwh').textContent   = fmt(pacKwh)   + ' kWh/an';
-    $('amort-actuel').textContent    = euro2(costNow);
-    $('amort-pac-eur').textContent   = euro2(pacCost);
-    $('amort-eco').textContent       = euro2(savingsYear);
-    $('amort-plus').textContent      = euro2(plusValue);
-    $('amort-years').textContent     = yearsText;
-    $('amort-result').style.display  = 'block';
-
-    // Coûts annuels pour le graphique (€/an)
-    const costGeo  = pacCost;
-    const costGaz  = (mode==='gaz') ? costNow : (thermKwh * PRICE_GAZ_REF);
-    const costProp = (mode==='propane') ? costNow : (thermKwh * PRICE_PROPANE);
-    const costFioul= (mode==='fioul') ? costNow : (thermKwh * PRICE_FIOUL_KWH);
-
-    drawBarChart('bar-svg',        {geo:costGeo, gaz:costGaz, propane:costProp, fioul:costFioul}, false);
-    AMORT = {mode, thermKwh, pacKwh, costNow, pacCost, savingsYear, yearsText,
-             bars:{geo:costGeo, gaz:costGaz, propane:costProp, fioul:costFioul}};
-  });
-</script>
+  </script>
 </body>
 </html>
