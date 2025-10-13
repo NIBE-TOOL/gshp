@@ -7,9 +7,14 @@
   <style>
     /* Base styles and colours */
     :root {
-      --color-primary: #00897b;
-      --color-secondary: #b71c1c; /* Rouge foncé pour le bandeau du titre */
-      --color-accent: #00bfa5;
+      /* Couleurs principales adaptées : 
+         - Le vert foncé devient la couleur primaire pour les boutons, la progression et les surlignages.
+         - La couleur secondaire reste le rouge NIBE.
+         - L'accent est un vert plus clair pour les éléments mis en évidence.
+      */
+      --color-primary: #00695c;        /* Vert foncé pour les éléments interactifs */
+      --color-secondary: #b71c1c;      /* Rouge foncé (logo NIBE et textes importants) */
+      --color-accent: #2e7d32;        /* Vert moyen pour les accents */
       --color-background: #f4f9f7;
       --color-surface: #ffffff;
       --color-text: #263238;
@@ -27,10 +32,24 @@
     h1 {
       margin: 0;
       padding: 1rem;
+      /* Utiliser flexbox pour aligner le logo et le titre sur la même ligne */
+      display: flex;
+      align-items: center;
+      /* Centrer le contenu du bandeau en mode normal */
+      justify-content: center;
+      /* Centrer le texte à l'intérieur pour l'affichage mobile */
       text-align: center;
-      background: var(--color-secondary);
-      color: #fff;
+      /* Bandeau clair pour mettre en valeur le logo rouge : fond blanc et texte rouge */
+      background: var(--color-surface);
+      color: var(--color-secondary);
       font-size: 1.3rem;
+    }
+
+    /* Ajuster l'alignement du texte dans le bandeau */
+    h1 span {
+      display: inline-block;
+      vertical-align: middle;
+      font-weight: 600;
     }
 
     /* Container for the application */
@@ -219,7 +238,10 @@
     .chart-bar .label {
       margin-top: 0.3rem;
       font-size: 0.75rem;
-      text-align: center;
+      /* Utiliser flexbox pour aligner le logo et le titre sur la gauche */
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
     }
 
     .print-btn {
@@ -241,8 +263,9 @@
 
     /* Logo image sizing (used both on screen and in print) */
     .logo-img {
-      /* Le logo est redimensionné pour éviter qu’il ne prenne toute la largeur du bandeau */
-      width: 60px;
+      /* Redimensionner le logo pour le rendre plus visible et l’aligner à gauche */
+      /* Logo de taille intermédiaire pour l'affichage mobile */
+      width: 70px;
       height: auto;
       margin-right: 8px;
       vertical-align: middle;
@@ -426,8 +449,10 @@
       /* Fond blanc pour le PDF et ajout de marges internes : 1 cm en haut et en bas, 2 cm à gauche et à droite */
       body {
         background: #fff;
-        font-size: 9.5px; /* police plus petite pour tenir sur une page */
-        padding: 10mm 20mm 10mm 20mm;
+        /* Police plus petite pour tenir sur une page A4 sans retour à la ligne inutile */
+        font-size: 8px;
+        /* Marges externes gérées via le padding : 2 cm à gauche et à droite, 0.8 cm en haut et en bas */
+        padding: 8mm 20mm 8mm 20mm;
         margin: 0;
       }
       /* Masquer les éléments de navigation et la barre de progression */
@@ -442,10 +467,20 @@
       #step7 .section-title {
         display: none !important;
       }
-      /* Afficher la note/disclaimer dans le rapport */
+      /* Masquer la note intégrée à l’interface lors de l’impression */
       #disclaimer {
+        display: none !important;
+      }
+      /* Afficher la note séparée pour l’impression : placer le texte dans le flux normal avec un grand espacement au-dessus
+         afin qu’il ne chevauche pas le graphique. La note est masquée en mode interactif et seulement visible en impression. */
+      #pdfFooter {
         display: block !important;
-        font-size: 0.6rem;
+        position: static;
+        margin-top: 4cm;
+        margin-left: 20mm;
+        margin-right: 20mm;
+        font-size: 0.35rem;
+        line-height: 1.3;
       }
       /* Ajuster la largeur et l’espacement du conteneur principal */
       .app-container {
@@ -453,24 +488,31 @@
         margin: 0;
         padding: 0;
       }
-      /* Ajuster la hauteur et la marge du graphique pour l’impression */
+      /* Ajuster la hauteur et la marge du graphique pour l’impression pour économiser de la place */
       .chart-container {
-        height: 180px;
-        margin-top: 0.6rem;
+        height: 140px;
+        margin-top: 0.5rem;
+        margin-bottom: 0;
       }
       /* Adapter la hauteur du graphique vertical à celle du conteneur pour l’impression */
       .vertical-chart {
-        height: 160px;
+        height: 120px;
       }
       /* Réduire la taille de la note/disclaimer pour gagner de la place */
       #disclaimer {
-        font-size: 0.45rem;
+        font-size: 0.35rem;
       }
 
       /* Imprimer les couleurs de fond et des SVG de manière fidèle */
       html, body {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+      }
+
+      /* Aligner le bandeau à gauche en impression pour que le logo soit bien positionné */
+      h1 {
+        justify-content: flex-start !important;
+        text-align: left !important;
       }
       /* Ajuster la taille des titres des sections */
       .results-section h3 {
@@ -485,10 +527,10 @@
 
     /* Style pour le logo dans le bandeau du titre (impression) */
     .logo-img {
-      /* Réduire la largeur du logo pour l’impression afin d’éviter qu’il ne domine le bandeau */
-      width: 60px;
+      /* Agrandir le logo et l’aligner vers la gauche en impression */
+      width: 90px;
       height: auto;
-      margin-right: 8px;
+      margin-right: 12px;
       vertical-align: middle;
     }
     }
@@ -662,6 +704,13 @@
         <button class="prev-btn" onclick="prevStep(7)">◀ Précédent</button>
       </div>
     </div>
+  </div>
+
+  <!-- Pied de page destiné à l’impression. Il sera affiché en bas de la page PDF et caché en mode interactif -->
+  <div id="pdfFooter" style="display:none; line-height:1.3;">
+    <p><strong>Note : </strong>Cette simulation est fournie à titre indicatif et n’a pas de valeur contractuelle. Les montants calculés reposent sur les informations déclarées par l’utilisateur et des hypothèses de coûts et de performances. Les aides financières (prime CEE et MaPrimeRénov’) dépendent de la catégorie de revenu, de la zone climatique, des justificatifs fournis et des validations des organismes compétents (ANAH, délégataire CEE).</p>
+    <p>Le remplacement est étudié comme un monogeste (chaudière gaz/fioul vers pompe à chaleur géothermique NIBE). Les tarifs énergétiques utilisés par défaut sont : gaz naturel 0,1284 €/kWh, fioul 1,16 €/L, propane 0,243 €/kWh, électricité 0,20 €/kWh. Ces valeurs peuvent varier et doivent être confirmées lors du projet.</p>
+    <p>Le dossier de demande de subvention doit être déposé avant le début des travaux et l’installation doit être réalisée par une entreprise certifiée RGE.</p>
   </div>
 
   <script>
@@ -938,7 +987,7 @@
         // géothermie
         const geothKwh = thermalEnergy / cop;
         const geothCost = geothKwh * prixElec;
-        costDetails.geothermie = { consommation: geothKwh, cout: geothCost, unit: 'kWhélec', prixUnit: prixElec };
+        costDetails.geothermie = { consommation: geothKwh, cout: geothCost, unit: 'kWh', prixUnit: prixElec };
       } else if (type === 'gaz') {
         const kwhGaz = parseFloat(state.gazKwh);
         const prixGaz = parseFloat(state.gazPrix);
@@ -958,7 +1007,7 @@
         // géothermie
         const geothKwh = thermalEnergy / cop;
         const geothCost = geothKwh * prixElec;
-        costDetails.geothermie = { consommation: geothKwh, cout: geothCost, unit: 'kWhélec', prixUnit: prixElec };
+        costDetails.geothermie = { consommation: geothKwh, cout: geothCost, unit: 'kWh', prixUnit: prixElec };
       } else if (type === 'propane') {
         const tonnes = parseFloat(state.propaneTonnes);
         const prixT = parseFloat(state.propanePrix);
@@ -978,7 +1027,7 @@
         // géothermie
         const geothKwh = thermalEnergy / cop;
         const geothCost = geothKwh * prixElec;
-        costDetails.geothermie = { consommation: geothKwh, cout: geothCost, unit: 'kWhélec', prixUnit: prixElec };
+        costDetails.geothermie = { consommation: geothKwh, cout: geothCost, unit: 'kWh', prixUnit: prixElec };
       }
       // calcul des émissions de CO2
       const emissionFactors = { fuel: 0.314, gaz: 0.243, propane: 0.27, electric: 0.053 };
@@ -1178,8 +1227,9 @@
       const c = amort.costDetails;
       // Format consumption with units
       function formatCons(val, unit) {
-        if (unit === 'kWh' || unit === 'kWhélec') {
-          return val.toFixed(0) + ' ' + unit;
+        // Toutes les consommations en kilowattheure sont affichées avec l’unité « kWh », même pour la géothermie
+        if (unit === 'kWh' || unit === 'kWhélec' || unit === 'kWhe') {
+          return val.toFixed(0) + ' kWh';
         }
         return val.toFixed(2) + ' ' + unit;
       }
@@ -1196,7 +1246,8 @@
       }
       // Toujours afficher la géothermie
       if (c.geothermie) {
-        h += `<tr><td>Géothermie (élec.)</td><td>${formatCons(c.geothermie.consommation, c.geothermie.unit)}</td><td>${c.geothermie.cout.toFixed(2)}</td></tr>`;
+        // Afficher simplement "Géothermie" (sans mention de la consommation électrique) pour plus de clarté
+        h += `<tr><td>Géothermie</td><td>${formatCons(c.geothermie.consommation, c.geothermie.unit)}</td><td>${c.geothermie.cout.toFixed(2)}</td></tr>`;
       }
       h += '</table>';
       // Calcul économie annuelle et amortissement
@@ -1363,6 +1414,25 @@
       const svg = document.createElementNS(svgNS, 'svg');
       svg.setAttribute('width', '100%');
       svg.setAttribute('height', svgHeight);
+      // Dessiner un cadre et une ligne de base pour améliorer la lisibilité
+      const border = document.createElementNS(svgNS, 'rect');
+      border.setAttribute('x', 0);
+      border.setAttribute('y', 0);
+      border.setAttribute('width', '100%');
+      border.setAttribute('height', svgHeight);
+      border.setAttribute('fill', 'none');
+      border.setAttribute('stroke', '#cccccc');
+      border.setAttribute('stroke-width', '1');
+      svg.appendChild(border);
+      // Ligne de base sous les barres
+      const baseline = document.createElementNS(svgNS, 'line');
+      baseline.setAttribute('x1', 0);
+      baseline.setAttribute('y1', paddingTop + barAreaHeight);
+      baseline.setAttribute('x2', svgWidth);
+      baseline.setAttribute('y2', paddingTop + barAreaHeight);
+      baseline.setAttribute('stroke', '#cccccc');
+      baseline.setAttribute('stroke-width', '1');
+      svg.appendChild(baseline);
       // Parcours des valeurs
       labels.forEach((label, idx) => {
         const x = barGap / 2 + idx * (barWidth + barGap);
