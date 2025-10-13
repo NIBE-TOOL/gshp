@@ -204,9 +204,10 @@
       height: 250px;
       margin-top: 1rem;
       position: relative;
-      background: var(--color-surface);
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      /* Supprimer l'arrière‑plan et les décorations pour rendre le graphique plus neutre */
+      background: transparent;
+      border-radius: 0;
+      box-shadow: none;
     }
 
     .chart-bars {
@@ -453,6 +454,8 @@
         font-size: 8px;
         /* Marges externes gérées via le padding : 2 cm à gauche et à droite, 0.8 cm en haut et en bas */
         padding: 8mm 20mm 8mm 20mm;
+        /* Laisser de l’espace en bas pour le pied de page (note), afin d’éviter un chevauchement avec le graphique */
+        padding-bottom: 40mm;
         margin: 0;
       }
       /* Masquer les éléments de navigation et la barre de progression */
@@ -474,11 +477,13 @@
       /* Afficher la note séparée pour l’impression : placer le texte dans le flux normal avec un grand espacement au-dessus
          afin qu’il ne chevauche pas le graphique. La note est masquée en mode interactif et seulement visible en impression. */
       #pdfFooter {
+        /* Afficher la note uniquement en impression et la positionner en pied de page 
+           La note est retirée du flux normal pour être ancrée en bas de la page. */
         display: block !important;
-        position: static;
-        margin-top: 4cm;
-        margin-left: 20mm;
-        margin-right: 20mm;
+        position: fixed;
+        left: 20mm;
+        right: 20mm;
+        bottom: 8mm;
         font-size: 0.35rem;
         line-height: 1.3;
       }
