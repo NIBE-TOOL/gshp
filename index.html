@@ -323,6 +323,12 @@
       border-radius: 4px;
     }
 
+    /* Taille de police pour les lignes de métriques : alignée avec la taille des cellules de tableau */
+    .metric {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
     /* Bar colours – géothermie highlighted */
     .bar {
       width: 80%;
@@ -342,6 +348,15 @@
     }
     .chart-bar .bar-geothermie {
       background: var(--color-accent) !important;
+    }
+
+    /* Style de la note (texte informatif) en mode interactif. La note apparaît en bas du résultat
+       avec une police réduite et une marge pour la séparer du graphique. */
+    #disclaimer {
+      font-size: 0.75rem;
+      line-height: 1.3;
+      margin-top: 2rem;
+      color: #444;
     }
 
     /*------------------------------------------*/
@@ -429,7 +444,8 @@
 
     /* Griser les champs de saisie pour les coûts énergétiques afin de guider l'utilisateur */
     .energy-fields input {
-      background: #f5f5f5;
+      /* Utiliser un fond blanc pour homogénéiser avec les autres champs */
+      background: #ffffff;
     }
 
     /* Valeur numérique pour les graphiques en colonnes */
@@ -450,8 +466,8 @@
       /* Fond blanc pour le PDF et ajout de marges internes : 1 cm en haut et en bas, 2 cm à gauche et à droite */
       body {
         background: #fff;
-        /* Police plus petite pour tenir sur une page A4 sans retour à la ligne inutile */
-        font-size: 8px;
+        /* Police de base uniforme en impression pour tous les textes (sauf titres) */
+        font-size: 9px;
         /* Marges externes gérées via le padding : 2 cm à gauche et à droite, 0.8 cm en haut et en bas */
         padding: 8mm 20mm 8mm 20mm;
         /* Laisser de l’espace en bas pour le pied de page (note), afin d’éviter un chevauchement avec le graphique */
@@ -470,21 +486,18 @@
       #step7 .section-title {
         display: none !important;
       }
-      /* Masquer la note intégrée à l’interface lors de l’impression */
+      /* Masquer la note intégrée (#disclaimer) en impression pour utiliser le pied de page séparé */
       #disclaimer {
         display: none !important;
       }
-      /* Afficher la note séparée pour l’impression : placer le texte dans le flux normal avec un grand espacement au-dessus
-         afin qu’il ne chevauche pas le graphique. La note est masquée en mode interactif et seulement visible en impression. */
+      /* Afficher le pied de page séparé en impression et le positionner en bas de la page */
       #pdfFooter {
-        /* Afficher la note uniquement en impression et la positionner en pied de page 
-           La note est retirée du flux normal pour être ancrée en bas de la page. */
         display: block !important;
         position: fixed;
         left: 20mm;
         right: 20mm;
-        bottom: 8mm;
-        font-size: 0.35rem;
+        bottom: 10mm;
+        font-size: 0.45rem;
         line-height: 1.3;
       }
       /* Ajuster la largeur et l’espacement du conteneur principal */
@@ -524,10 +537,15 @@
         font-size: 1rem;
         margin-bottom: 0.3rem;
       }
-      /* Réduire la taille des cellules de tableau pour économiser de l’espace */
+      /* Taille de police uniforme pour les métriques en impression (alignée sur la police de base) */
+      .metric {
+        font-size: 9px;
+        font-weight: 600;
+      }
+      /* Adapter la taille des cellules de tableau pour qu’elles utilisent la même police que le reste du texte */
       .results-section table th, .results-section table td {
         padding: 0.2rem 0.3rem;
-        font-size: 0.75rem;
+        font-size: 9px;
       }
 
     /* Style pour le logo dans le bandeau du titre (impression) */
@@ -565,19 +583,24 @@
         </div>
       </div>
       <label for="codePostal">Code&nbsp;postal</label>
-      <input type="text" id="codePostal" placeholder="Ex : 35000" maxlength="5" />
+      <!-- Pas d’exemple pour le code postal : l’utilisateur doit saisir son propre code -->
+      <input type="text" id="codePostal" placeholder="" maxlength="5" />
       <div style="text-align:right;">
         <button class="next-btn" onclick="nextStep(1)">Suivant ▶</button>
       </div>
     </div>
 
-    <!-- Step 2: Informations fiscales et surface -->
+    <!-- Step 2: Tranche de revenu et surface -->
     <div id="step2" class="step">
-      <p class="section-title">Étape 2 : Informations fiscales et surface</p>
-      <label for="revenu">Revenu fiscal de référence (€)</label>
-      <input type="number" id="revenu" placeholder="Ex : 45000" min="0" />
+      <p class="section-title">Étape 2 : Tranche de revenu et surface</p>
+      <!-- L’utilisateur doit d’abord saisir le nombre de personnes afin de déterminer dynamiquement les tranches de revenu en fonction de sa localisation. -->
       <label for="foyer">Nombre de personnes dans le foyer</label>
-      <input type="number" id="foyer" placeholder="Ex : 3" min="1" />
+      <input type="number" id="foyer" placeholder="Ex : 3" min="1" oninput="updateRevenuRanges()" />
+      <label for="revenuRange">Tranche de revenu fiscal de référence (€)</label>
+      <!-- Les options de tranche sont générées par la fonction updateRevenuRanges() en fonction du nombre de personnes et du code postal -->
+      <select id="revenuRange">
+        <option value="" disabled selected>Saisissez le nombre de personnes</option>
+      </select>
       <label for="surface">Surface chauffée (m²)</label>
       <input type="number" id="surface" placeholder="Ex : 100" min="1" />
       <div style="text-align:right;">
@@ -598,14 +621,14 @@
       <select id="temperature">
         <option value="35">35 °C</option>
         <!-- 55 °C avec radiateurs (pluriel) -->
-        <option value="55">55 °C radiateurs</option>
+        <option value="55" selected>55 °C radiateurs</option>
         <!-- 55 °C avec plancher chauffant + radiateurs (pluriel) -->
         <option value="55r">55 °C plancher chauffant + radiateurs</option>
       </select>
       <label for="usage">Usage</label>
       <select id="usage">
         <option value="chauffage">Chauffage seul</option>
-        <option value="ecs">Chauffage + Eau chaude sanitaire (ECS)</option>
+        <option value="ecs" selected>Chauffage + Eau chaude sanitaire (ECS)</option>
       </select>
       <div style="text-align:right;">
         <button class="prev-btn" onclick="prevStep(3)">◀ Précédent</button>
@@ -635,7 +658,7 @@
       <label for="coutMO">Coût main d’œuvre (€ TTC)</label>
       <!-- Exemple par défaut : 2 000 € -->
       <input type="number" id="coutMO" placeholder="Ex&nbsp;: 2000" min="0" />
-      <label for="coutForage">Coût forage géothermique (€ TTC)</label>
+      <label for="coutForage">Coût du capteur géothermique (sondes géothermiques/forage d'eau, aquathermie, main d’œuvre) (€ TTC)</label>
       <!-- Exemple par défaut : 7 000 € -->
       <input type="number" id="coutForage" placeholder="Ex&nbsp;: 7000" min="0" />
       <label for="coutChaudiere">Coût du remplacement d’une chaudière équivalente (€ TTC)</label>
@@ -658,32 +681,32 @@
       </select>
       <div id="fuelFields" class="energy-fields">
         <label for="fuelLitres">Consommation annuelle (litres)</label>
-        <input type="number" id="fuelLitres" placeholder="Ex : 2000" min="0" value="2000" />
+        <input type="number" id="fuelLitres" placeholder="Ex : 2000" min="0" />
         <label for="fuelPrix">Prix du fioul (€ / litre)</label>
-        <!-- Mettre 1,50 € par défaut pour le fioul et mettre le placeholder en conséquence -->
-        <input type="number" id="fuelPrix" placeholder="Ex : 1,50" min="0" step="0.01" value="1.50" />
+        <!-- Exemple de prix du fioul : 1,30 €/L (à renseigner par l’utilisateur) -->
+        <input type="number" id="fuelPrix" placeholder="Ex : 1,30" min="0" step="0.01" />
         <label for="fuelElecPrix">Prix du kWh électrique (€)</label>
-        <input type="number" id="fuelElecPrix" placeholder="Ex : 0,20" min="0" step="0.01" value="0.20" />
+        <input type="number" id="fuelElecPrix" placeholder="Ex : 0,20" min="0" step="0.01" />
       </div>
       <div id="gazFields" class="energy-fields" style="display:none;">
         <label for="gazKwh">Consommation annuelle (kWh)</label>
-        <input type="number" id="gazKwh" placeholder="Ex : 20000" min="0" value="20000" />
+        <input type="number" id="gazKwh" placeholder="Ex : 20000" min="0" />
         <label for="gazPrix">Prix du gaz (€ / kWh)</label>
-        <input type="number" id="gazPrix" placeholder="Ex : 0,1284" min="0" step="0.0001" value="0.1284" />
+        <input type="number" id="gazPrix" placeholder="Ex : 0,1284" min="0" step="0.0001" />
         <label for="gazAbonnement">Abonnement gaz (€ / an)</label>
-        <input type="number" id="gazAbonnement" placeholder="Ex : 250" min="0" value="250" />
+        <input type="number" id="gazAbonnement" placeholder="Ex : 250" min="0" />
         <label for="gazElecPrix">Prix du kWh électrique (€)</label>
-        <input type="number" id="gazElecPrix" placeholder="Ex : 0,20" min="0" step="0.01" value="0.20" />
+        <input type="number" id="gazElecPrix" placeholder="Ex : 0,20" min="0" step="0.01" />
       </div>
       <div id="propaneFields" class="energy-fields" style="display:none;">
         <label for="propaneTonnes">Consommation annuelle (tonnes)</label>
-        <input type="number" id="propaneTonnes" placeholder="Ex : 1,2" min="0" step="0.01" value="1.2" />
+        <input type="number" id="propaneTonnes" placeholder="Ex : 1,2" min="0" step="0.01" />
         <label for="propanePrix">Prix du propane (€ / tonne)</label>
-        <input type="number" id="propanePrix" placeholder="Ex : 3353" min="0" value="3353.4" />
+        <input type="number" id="propanePrix" placeholder="Ex : 3353" min="0" />
         <label for="propaneAbonnement">Abonnement cuve (€ / an)</label>
-        <input type="number" id="propaneAbonnement" placeholder="Ex : 250" min="0" value="250" />
+        <input type="number" id="propaneAbonnement" placeholder="Ex : 250" min="0" />
         <label for="propaneElecPrix">Prix du kWh électrique (€)</label>
-        <input type="number" id="propaneElecPrix" placeholder="Ex : 0,20" min="0" step="0.01" value="0.20" />
+        <input type="number" id="propaneElecPrix" placeholder="Ex : 0,20" min="0" step="0.01" />
       </div>
       <div style="text-align:right;">
         <button class="prev-btn" onclick="prevStep(6)">◀ Précédent</button>
@@ -699,10 +722,12 @@
       <!-- Graphique comparatif des consommations -->
       <div id="consumptionChart" class="chart-container"></div>
       <!-- Note et réserves (visible dans le rapport PDF) -->
-      <div id="disclaimer" class="results-section" style="display:none; margin-top: 1rem; line-height:1.3;">
-        <p><strong>Note : </strong>Cette simulation est fournie à titre indicatif et n’a pas de valeur contractuelle. Les montants calculés reposent sur les informations déclarées par l’utilisateur et des hypothèses de coûts et de performances. Les aides financières (prime CEE et MaPrimeRénov’) dépendent de la catégorie de revenu, de la zone climatique, des justificatifs fournis et des validations des organismes compétents (ANAH, délégataire CEE).</p>
-        <p>Le remplacement est étudié comme un monogeste (chaudière gaz/fioul vers pompe à chaleur géothermique NIBE). Les tarifs énergétiques utilisés par défaut sont : gaz naturel 0,1284 €/kWh, fioul 1,16 €/L, propane 0,243 €/kWh, électricité 0,20 €/kWh. Ces valeurs peuvent varier et doivent être confirmées lors du projet.</p>
-        <p>Le dossier de demande de subvention doit être déposé avant le début des travaux et l’installation doit être réalisée par une entreprise certifiée RGE.</p>
+      <!-- Note et réserves : visible dans les résultats et masquée uniquement lors de l’impression -->
+      <div id="disclaimer" class="results-section" style="margin-top: 1rem; line-height:1.3;">
+        <p><strong>Note :</strong> Cette simulation est fournie à titre indicatif et n’a pas de valeur contractuelle. Les montants calculés reposent sur les informations déclarées par l’utilisateur et des hypothèses de coûts et de performances.</p>
+        <p>Les aides financières (prime CEE et MaPrimeRénov’) dépendent de la catégorie de revenu, de la zone climatique, des justificatifs fournis et des validations des organismes compétents (ANAH, délégataire CEE). Les montants de cette simulation sont destinés aux professionnels, sont donnés à titre indicatif et n’engagent pas NIBE France. Ces informations peuvent être sujettes à modifications ; la version actuelle est au <strong>1er octobre 2025</strong>. Les prix des CEE varient d’un obligé à l’autre, donc les montants présentés sont des estimations et n’engagent pas la société NIBE.</p>
+        <p>Le remplacement est étudié comme un monogeste (chaudière gaz/fioul vers pompe à chaleur géothermique NIBE). Les tarifs énergétiques utilisés par défaut sont : gaz naturel 0,1284 €/kWh, fioul 1,16 €/L, propane 0,243 €/kWh, électricité 0,20 €/kWh. Ces valeurs peuvent varier et doivent être confirmées lors du projet.</p>
+        <p>Le dossier de demande de subvention doit être déposé avant le début des travaux et l’installation doit être réalisée par une entreprise certifiée RGE.</p>
       </div>
       <button class="print-btn" onclick="window.print()">📄 Éditer PDF</button>
       <div style="text-align:right;">
@@ -713,7 +738,8 @@
 
   <!-- Pied de page destiné à l’impression. Il sera affiché en bas de la page PDF et caché en mode interactif -->
   <div id="pdfFooter" style="display:none; line-height:1.3;">
-    <p><strong>Note : </strong>Cette simulation est fournie à titre indicatif et n’a pas de valeur contractuelle. Les montants calculés reposent sur les informations déclarées par l’utilisateur et des hypothèses de coûts et de performances. Les aides financières (prime CEE et MaPrimeRénov’) dépendent de la catégorie de revenu, de la zone climatique, des justificatifs fournis et des validations des organismes compétents (ANAH, délégataire CEE).</p>
+    <p><strong>Note :</strong> Cette simulation est fournie à titre indicatif et n’a pas de valeur contractuelle. Les montants calculés reposent sur les informations déclarées par l’utilisateur et des hypothèses de coûts et de performances.</p>
+    <p>Les aides financières (prime CEE et MaPrimeRénov’) dépendent de la catégorie de revenu, de la zone climatique, des justificatifs fournis et des validations des organismes compétents (ANAH, délégataire CEE). Les montants de cette simulation sont destinés aux professionnels, sont donnés à titre indicatif et n’engagent pas NIBE France. Ces informations peuvent être sujettes à modifications ; la version actuelle est au <strong>1er octobre 2025</strong>. Les prix des CEE varient d’un obligé à l’autre, donc les montants présentés sont des estimations et n’engagent pas la société NIBE.</p>
     <p>Le remplacement est étudié comme un monogeste (chaudière gaz/fioul vers pompe à chaleur géothermique NIBE). Les tarifs énergétiques utilisés par défaut sont : gaz naturel 0,1284 €/kWh, fioul 1,16 €/L, propane 0,243 €/kWh, électricité 0,20 €/kWh. Ces valeurs peuvent varier et doivent être confirmées lors du projet.</p>
     <p>Le dossier de demande de subvention doit être déposé avant le début des travaux et l’installation doit être réalisée par une entreprise certifiée RGE.</p>
   </div>
@@ -813,6 +839,10 @@
         opt.textContent = model;
         modeleSelect.appendChild(opt);
       }
+      // Sélectionner par défaut le modèle NIBE S1256‑13 s’il existe dans la liste
+      if (models['NIBE S1256-13']) {
+        modeleSelect.value = 'NIBE S1256-13';
+      }
     }
 
     // Met à jour la visibilité des champs selon l’énergie sélectionnée
@@ -891,6 +921,87 @@
       return 1;
     }
 
+    /**
+     * Met à jour dynamiquement la liste des tranches de revenu en fonction
+     * du nombre de personnes dans le foyer et de la zone (Île‑de‑France ou non).
+     * Les tranches sont calculées à partir des barèmes officiels MaPrimeRenov’ 2025.
+     * Si le nombre de personnes n’est pas renseigné, la liste indique à l’utilisateur
+     * de saisir d’abord cette information.
+     */
+    function updateRevenuRanges() {
+      const foyerInput = document.getElementById('foyer');
+      const rangeSelect = document.getElementById('revenuRange');
+      if (!rangeSelect || !foyerInput) return;
+      const foyersVal = parseInt(foyerInput.value);
+      // Récupérer le code postal pour déterminer l’appartenance à l’Île‑de‑France
+      const code = document.getElementById('codePostal') ? document.getElementById('codePostal').value.trim() : '';
+      let dep = code.substring(0, 2);
+      // départements de l’Île‑de‑France
+      const idfDeps = ['75','77','78','91','92','93','94','95'];
+      const isIDF = idfDeps.includes(dep);
+      // Si le nombre de personnes n’est pas valide, vider la liste et afficher un message
+      if (!foyersVal || isNaN(foyersVal) || foyersVal < 1) {
+        rangeSelect.innerHTML = '';
+        const opt = document.createElement('option');
+        opt.disabled = true;
+        opt.selected = true;
+        opt.value = '';
+        opt.textContent = 'Saisissez le nombre de personnes';
+        rangeSelect.appendChild(opt);
+        return;
+      }
+      // Récupération des barèmes selon IDF/non‑IDF
+      const bar = revenusBarème[isIDF ? 'IDF' : 'nonIDF'];
+      // Indice de base pour 1 à 5 personnes (0‑4). Pour plus de 5 personnes, on utilise l’indice 4 et on ajoute un incrément par personne supplémentaire.
+      const idx = Math.min(foyersVal, 5) - 1;
+      // Copie des seuils de base pour éviter de modifier les barèmes originaux
+      let tRes = bar.tres[idx];
+      let mRes = bar.modeste[idx];
+      let iRes = bar.inter[idx];
+      if (foyersVal > 5) {
+        const extra = foyersVal - 5;
+        tRes += extra * bar.supInc.tres;
+        mRes += extra * bar.supInc.modeste;
+        iRes += extra * bar.supInc.inter;
+      }
+      // Formatage des nombres en français (séparateur d’espace insécable)
+      function fmt(n) {
+        return Math.round(n).toLocaleString('fr-FR');
+      }
+      // Reconstruire la liste des options
+      rangeSelect.innerHTML = '';
+      // Option par défaut
+      const defaultOpt = document.createElement('option');
+      defaultOpt.disabled = true;
+      defaultOpt.selected = true;
+      defaultOpt.value = '';
+      defaultOpt.textContent = 'Sélectionnez votre tranche';
+      rangeSelect.appendChild(defaultOpt);
+      // Tranche très modeste : 0 € à tRes
+      const opt0 = document.createElement('option');
+      opt0.value = '0';
+      opt0.textContent = '0 € – ' + fmt(tRes) + ' €';
+      rangeSelect.appendChild(opt0);
+      // Tranche modeste : tRes+1 à mRes
+      const opt1 = document.createElement('option');
+      opt1.value = '1';
+      const lower1 = tRes + 1;
+      opt1.textContent = fmt(lower1) + ' € – ' + fmt(mRes) + ' €';
+      rangeSelect.appendChild(opt1);
+      // Tranche intermédiaire : mRes+1 à iRes
+      const opt2 = document.createElement('option');
+      opt2.value = '2';
+      const lower2 = mRes + 1;
+      opt2.textContent = fmt(lower2) + ' € – ' + fmt(iRes) + ' €';
+      rangeSelect.appendChild(opt2);
+      // Tranche supérieure : au‑delà de iRes
+      const opt3 = document.createElement('option');
+      opt3.value = '3';
+      const lower3 = iRes + 1;
+      opt3.textContent = fmt(lower3) + ' € et plus';
+      rangeSelect.appendChild(opt3);
+    }
+
     // Calcule la prime CEE et MaPrimeRenov
     function calculAides() {
       // récupération des informations stockées dans l’état
@@ -920,7 +1031,14 @@
       const kwhCumac = baseKwh * surfFactor * zoneCoef * 5;
       const mwhCumac = kwhCumac / 1000;
       // catégorie de revenu
-      const categorie = determineCategorie(revenu, foyers, isIDF);
+      let categorie;
+      if (state.categorie) {
+        // Si l’utilisateur a sélectionné directement une catégorie de revenu, l’utiliser
+        categorie = state.categorie;
+      } else {
+        // Sinon, déterminer la catégorie à partir du revenu et du nombre de personnes
+        categorie = determineCategorie(revenu, foyers, isIDF);
+      }
       // barème financier exprimé en euros par MWh cumac
       // Les montants officiels sont d’environ 8,26 €/MWh pour les revenus très modestes (précaires)
       // et de 7,02 €/MWh pour les revenus modestes et intermédiaires. Les revenus supérieurs ne sont pas éligibles.
@@ -1072,6 +1190,10 @@
         // Lorsque l'on affiche les résultats finaux
         afficherResultats();
       }
+      // Mettre à jour dynamiquement les tranches de revenu lorsque l'on arrive à l'étape 2
+      if (currentStep === 2) {
+        updateRevenuRanges();
+      }
     }
 
     function prevStep(step) {
@@ -1103,17 +1225,23 @@
         state.isIDF = isIDF;
         state.zoneClim = zone;
       } else if (step === 2) {
-        // Saisie du revenu, nombre de personnes et surface
-        const revenuVal = parseFloat(document.getElementById('revenu').value);
+        // Sélection de la tranche de revenu, du nombre de personnes et de la surface
+        const rangeVal = document.getElementById('revenuRange').value;
         const foyersVal = parseInt(document.getElementById('foyer').value);
         const surfaceVal = parseFloat(document.getElementById('surface').value);
-        if (isNaN(revenuVal) || isNaN(foyersVal) || isNaN(surfaceVal)) {
-          alert('Veuillez saisir le revenu fiscal, le nombre de personnes et la surface chauffée.');
+        if (!rangeVal || isNaN(foyersVal) || isNaN(surfaceVal)) {
+          alert('Veuillez sélectionner votre tranche de revenu, saisir le nombre de personnes et la surface chauffée.');
           return false;
         }
-        state.revenu = revenuVal;
+        // Mappe l’index de tranche vers la catégorie de revenu
+        const rangeIndex = parseInt(rangeVal);
+        const catMap = ['tres-modeste', 'modeste', 'intermediaire', 'superieur'];
+        state.categorie = catMap[rangeIndex] || 'superieur';
+        // Enregistrer les valeurs
         state.foyer = foyersVal;
         state.surface = surfaceVal;
+        // Aucune saisie directe du revenu, initialiser pour compatibilité
+        state.revenu = 0;
       } else if (step === 3) {
         // Type de PAC, température et usage
         const type = document.getElementById('typePac').value;
@@ -1199,7 +1327,7 @@
       // Détaille chaque composant de l’investissement
       html += `<tr><td>Coût fourniture PAC</td><td>${state.coutFourniture.toFixed(2)}</td></tr>`;
       html += `<tr><td>Coût main d’œuvre</td><td>${state.coutMO.toFixed(2)}</td></tr>`;
-      html += `<tr><td>Coût forage</td><td>${state.coutForage.toFixed(2)}</td></tr>`;
+      html += `<tr><td>Coût capteur géothermique</td><td>${state.coutForage.toFixed(2)}</td></tr>`;
       html += `<tr><td>Investissement total</td><td>${finance.invest.toFixed(2)}</td></tr>`;
       // Affiche les primes sans mise en valeur individuelle
       html += `<tr><td>Prime CEE</td><td>${finance.primeCEE.toFixed(2)}</td></tr>`;
@@ -1214,14 +1342,14 @@
       html += `<tr><td>Différence (géothermie – remplacement)</td><td><span class="${pvClass}">${finance.plusValue.toFixed(2)}</span></td></tr>`;
       html += '</table>';
       // Informations complémentaires : catégorie, zones et énergie cumulée
-      html += `<p>Catégorie de revenu : <strong>${finance.categorie}</strong></p>`;
+      html += `<p class="metric">Catégorie de revenu : <strong>${finance.categorie}</strong></p>`;
       // Ajoute la zone géographique (Île‑de‑France ou hors IDF)
       const zoneGeo = state.isIDF ? 'Île‑de‑France' : 'Hors Île‑de‑France';
-      html += `<p>Zone géographique : <strong>${zoneGeo}</strong></p>`;
-      html += `<p>Zone climatique : <strong>${state.zoneClim}</strong> (facteur zone ${getZoneCoefficient(state.zoneClim)})</p>`;
-      html += `<p>Surface chauffée : <strong>${state.surface} m²</strong> (facteur surface ${getSurfaceFactor(state.surface)})</p>`;
+      html += `<p class="metric">Zone géographique : <strong>${zoneGeo}</strong></p>`;
+      html += `<p class="metric">Zone climatique : <strong>${state.zoneClim}</strong> (facteur zone ${getZoneCoefficient(state.zoneClim)})</p>`;
+      html += `<p class="metric">Surface chauffée : <strong>${state.surface} m²</strong> (facteur surface ${getSurfaceFactor(state.surface)})</p>`;
       const kwhCumac = finance.mwhCumac * 1000;
-      html += `<p>Énergie cumulée CEE : <strong>${kwhCumac.toFixed(0)}</strong> kWh cumac (${finance.mwhCumac.toFixed(2)} MWh)</p>`;
+      html += `<p class="metric">Énergie cumulée CEE : <strong>${kwhCumac.toFixed(0)}</strong> kWh cumac (${finance.mwhCumac.toFixed(2)} MWh)</p>`;
       finDiv.innerHTML = html;
       // Résumé amortissement
       const amortDiv = document.getElementById('resultAmort');
@@ -1262,15 +1390,17 @@
       const plusVal = finance.plusValue;
       let amorti = '∞';
       if (economie > 0) {
-        amorti = (plusVal / economie).toFixed(1);
+        const years = plusVal / economie;
+        // Si l’amortissement calculé est négatif, on affiche 0
+        amorti = years > 0 ? years.toFixed(1) : '0';
       }
-      h += `<p>Coût annuel actuel : <strong>${coutActuel.toFixed(2)}</strong> €</p>`;
-      h += `<p>Coût annuel avec géothermie : <strong>${coutGeo.toFixed(2)}</strong> €</p>`;
-      h += `<p>Économie annuelle estimée : <strong>${economie.toFixed(2)}</strong> €</p>`;
-      h += `<p>Amortissement estimé (années) : <span class="highlight-amort">${amorti}</span></p>`;
+      h += `<p class="metric">Coût annuel actuel : <strong>${coutActuel.toFixed(2)}</strong> €</p>`;
+      h += `<p class="metric">Coût annuel avec géothermie : <strong>${coutGeo.toFixed(2)}</strong> €</p>`;
+      h += `<p class="metric">Économie annuelle estimée : <strong>${economie.toFixed(2)}</strong> €</p>`;
+      h += `<p class="metric">Amortissement estimé (années) : <span class="highlight-amort">${amorti}</span></p>`;
       // Émissions évitées
       if (amort.emissionsSaved && amort.emissionsSaved > 0) {
-        h += `<p>Émissions évitées : <strong>${amort.emissionsSaved.toFixed(0)}</strong> kg CO₂/an</p>`;
+        h += `<p class="metric">Émissions évitées : <strong>${amort.emissionsSaved.toFixed(0)}</strong> kg CO₂/an</p>`;
       }
       amortDiv.innerHTML = h;
       // Graphique de comparaison des coûts annuels (€/an)
