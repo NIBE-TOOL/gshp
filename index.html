@@ -1041,14 +1041,17 @@
       }
       // barème financier exprimé en euros par MWh cumac
       // Les montants officiels sont d’environ 8,26 €/MWh pour les revenus très modestes (précaires)
-      // et de 7,02 €/MWh pour les revenus modestes et intermédiaires. Les revenus supérieurs ne sont pas éligibles.
+      // et de 7,02 €/MWh pour les revenus modestes, intermédiaires et supérieurs.
+      // Les revenus supérieurs bénéficient donc de la même prime CEE que la 3ᵉ tranche (intermédiaire),
+      // mais ne sont pas éligibles à MaPrimeRénov.
       let tarifMwh;
       if (categorie === 'tres-modeste') {
         tarifMwh = 8.26; // 8,26 €/MWh cumac
-      } else if (categorie === 'modeste' || categorie === 'intermediaire') {
+      } else if (categorie === 'modeste' || categorie === 'intermediaire' || categorie === 'superieur') {
+        // revenus modestes, intermédiaires et supérieurs : même tarif CEE
         tarifMwh = 7.02; // 7,02 €/MWh cumac
       } else {
-        tarifMwh = 0; // revenus supérieurs : non éligible
+        tarifMwh = 0;
       }
       const primeCEE = mwhCumac * tarifMwh;
       // MaPrimeRenov
