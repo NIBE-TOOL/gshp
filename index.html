@@ -591,14 +591,19 @@
 
     <!-- Étape 5 -->
     <div id="step5" class="step">
-      <p class="section-title">Étape 5 : Coûts d’installation</p>
-      <label for="coutFourniture">Coût fourniture PAC (€ TTC)</label>
+      <p class="section-title">
+        Étape 5 : Coûts d’installation
+        <span id="travauxCibleInfo" style="font-size:0.85rem;font-weight:400;">
+          (montant restant cible : <span id="travauxCibleValeur">-</span> €)
+        </span>
+      </p>
+      <label for="coutFourniture">Coût fourniture PAC (€)</label>
       <input type="number" id="coutFourniture" placeholder="Ex&nbsp;: 15000" min="0" />
-      <label for="coutMO">Coût main d’œuvre (€ TTC)</label>
+      <label for="coutMO">Coût main d’œuvre (€)</label>
       <input type="number" id="coutMO" placeholder="Ex&nbsp;: 2000" min="0" />
-      <label for="coutForage">Coût du capteur géothermique (sondes géothermiques/forage d'eau, aquathermie, main d’œuvre) (€ TTC)</label>
+      <label for="coutForage">Coût du capteur géothermique (sondes géothermiques/forage d'eau, aquathermie, main d’œuvre) (€)</label>
       <input type="number" id="coutForage" placeholder="Ex&nbsp;: 7000" min="0" />
-      <label for="coutChaudiere">Coût du remplacement d’une chaudière équivalente (€ TTC)</label>
+      <label for="coutChaudiere">Coût du remplacement d’une chaudière équivalente (€)</label>
       <input type="number" id="coutChaudiere" placeholder="Ex&nbsp;: 5000" min="0" />
       <div style="text-align:right;">
         <button class="prev-btn" onclick="prevStep(5)">◀ Précédent</button>
@@ -669,7 +674,7 @@
   </div>
 
   <div id="pdfFooter" style="display:none; line-height:1.3;">
-    <!-- même texte que disclaimer, si besoin -->
+    <!-- optionnel -->
   </div>
 
   <script>
@@ -934,6 +939,38 @@
       return { categorie, primeCEE, primeMPR, mwhCumac, kwhCumac };
     }
 
+    // MONTANT RESTANT CIBLE
+    function updateTravauxCible() {
+      const spanVal = document.getElementById('travauxCibleValeur');
+      if (!spanVal) return;
+      try {
+        const aides = calculAides();
+        const primeCEE = aides.primeCEE || 0;
+        const primeMPR = aides.primeMPR || 0;
+        const totalPrimes = primeCEE + primeMPR;
+
+        if (totalPrimes > 0) {
+          const cibleTotal = totalPrimes / 0.75;
+
+          const coutFourniture = parseFloat(document.getElementById('coutFourniture').value) || 0;
+          const coutMO = parseFloat(document.getElementById('coutMO').value) || 0;
+          const coutForage = parseFloat(document.getElementById('coutForage').value) || 0;
+
+          const dejaSaisi = coutFourniture + coutMO + coutForage;
+          const restant = cibleTotal - dejaSaisi;
+
+          spanVal.textContent = restant.toLocaleString('fr-FR', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+          });
+        } else {
+          spanVal.textContent = '-';
+        }
+      } catch (e) {
+        spanVal.textContent = '-';
+      }
+    }
+
     function calculFinance() {
       const aides = calculAides();
       const coutFourniture = parseFloat(state.coutFourniture);
@@ -941,21 +978,30 @@
       const coutForage = parseFloat(state.coutForage);
       const invest = coutFourniture + coutMO + coutForage;
 
-      let primeCEE = aides.primeCEE;
-      let primeMPR = aides.primeMPR;
-      let primeTot = primeCEE + primeMPR;
-
+      const primeCEE = aides.primeCEE;
+      const primeMPRBrut = aides.primeMPR;
       const maxAides = 0.75 * invest;
-      if (primeTot > maxAides) {
+      let primeMPR = primeMPRBrut;
+
+      if (primeCEE + primeMPRBrut > maxAides) {
         primeMPR = Math.max(0, maxAides - primeCEE);
-        primeTot = primeCEE + primeMPR;
       }
 
+      const primeTot = primeCEE + primeMPR;
       const resteCharge = invest - primeTot;
       const coutChaudiere = parseFloat(state.coutChaudiere);
       const plusValue = resteCharge - coutChaudiere;
 
-      return { invest, primeCEE, primeMPR, primeTot, resteCharge, plusValue, categorie: aides.categorie, mwhCumac: aides.mwhCumac };
+      return {
+        invest,
+        primeCEE,
+        primeMPR,
+        primeTot,
+        resteCharge,
+        plusValue,
+        categorie: aides.categorie,
+        mwhCumac: aides.mwhCumac
+      };
     }
 
     function calculAmortissement() {
@@ -1050,6 +1096,9 @@
       updateProgress();
       if (currentStep === 4) {
         initModeleOptions();
+      }
+      if (currentStep === 5) {
+        updateTravauxCible();
       }
       if (currentStep === 7) {
         afficherResultats();
@@ -1238,16 +1287,17 @@
 
       const barLabels = [];
       const barValues = [];
-      if (c.geothermie) {
+      const cDetails = amort.costDetails;
+      if (cDetails.geothermie) {
         barLabels.push('Géothermie');
-        barValues.push(c.geothermie.cout);
+        barValues.push(cDetails.geothermie.cout);
       }
       barLabels.push('Fioul');
-      barValues.push(c.fuel ? c.fuel.cout : 0);
+      barValues.push(cDetails.fuel ? cDetails.fuel.cout : 0);
       barLabels.push('Gaz naturel');
-      barValues.push(c.gaz ? c.gaz.cout : 0);
+      barValues.push(cDetails.gaz ? cDetails.gaz.cout : 0);
       barLabels.push('Propane');
-      barValues.push(c.propane ? c.propane.cout : 0);
+      barValues.push(cDetails.propane ? cDetails.propane.cout : 0);
       drawSVGColumnChart('consumptionChart', barLabels, barValues);
     }
 
@@ -1349,15 +1399,16 @@
         '<title>Simulation géothermie NIBE</title>' +
         '<style>' +
         '@page { size: A4; margin: 10mm; }' +
-        'body { font-family: "Inter", Arial, sans-serif; font-size: 10px; margin:0; }' +
-        'h1 { display:flex; align-items:center; font-size:14px; margin:0 0 8px 0; }' +
+        'body { font-family: "Inter", Arial, sans-serif; font-size: 11px; line-height:1.35; margin:0; }' +
+        'h1 { display:flex; align-items:center; font-size:16px; margin:0 0 10px 0; }' +
         '.logo-img { width:70px; height:auto; margin-right:8px; }' +
+        'h3 { font-size:13px; margin:6px 0; }' +
         '.section-title { font-size:12px; margin:6px 0; color:#b71c1c; font-weight:600; }' +
-        'table { width:100%; border-collapse:collapse; font-size:8px; }' +
+        'table { width:100%; border-collapse:collapse; font-size:9px; }' +
         'th, td { border:1px solid #ccc; padding:2px 3px; }' +
-        '.metric { font-size:9px; margin:2px 0; }' +
-        '#disclaimer { font-size:7px; margin-top:8px; }' +
-        '.chart-container { margin-top:6px; }' +
+        '.metric { font-size:10px; margin:3px 0; }' +
+        '#disclaimer { font-size:8px; margin-top:10px; }' +
+        '.chart-container { margin-top:8px; }' +
         '.highlight-prime { color:#2e7d32; font-weight:700; background:rgba(0,191,165,0.15); padding:1px 3px; border-radius:3px; }' +
         '.highlight-charge { color:#2e7d32; font-weight:700; background:rgba(46,125,50,0.15); padding:1px 3px; border-radius:3px; }' +
         '.highlight-plus { color:#2e7d32; font-weight:700; background:rgba(46,125,50,0.15); padding:1px 3px; border-radius:3px; }' +
@@ -1384,6 +1435,13 @@
       initModeleOptions();
       updateEnergyFields();
       updateProgress();
+
+      ['coutFourniture','coutMO','coutForage'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', updateTravauxCible);
+        }
+      });
     });
   </script>
 </body>
