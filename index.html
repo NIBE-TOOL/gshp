@@ -662,7 +662,7 @@
       <div id="consumptionChart" class="chart-container"></div>
       <div id="disclaimer" class="results-section" style="margin-top: 1rem; line-height:1.3;">
         <p><strong>Note :</strong> Cette simulation est fournie à titre indicatif et n’a pas de valeur contractuelle. Les montants calculés reposent sur les informations déclarées par l’utilisateur et des hypothèses de coûts et de performances.</p>
-        <p>Les aides financières (prime CEE et MaPrimeRénov’) dépendent de la catégorie de revenu, de la zone climatique, des justificatifs fournis et des validations des organismes compétents (ANAH, délégataire CEE). Les montants de cette simulation sont destinés aux professionnels, sont donnés à titre indicatif et n’engagent pas NIBE France. Ces informations peuvent être sujettes à modifications ; la version actuelle est au <strong>1er octobre 2025</strong>. Les prix des CEE varient d’un obligé à l’autre, donc les montants présentés sont des estimations et n’engagent pas la société NIBE.</p>
+        <p>Les aides financières (prime CEE et MaPrimeRénov’) dépendent de la catégorie de revenu, de la zone climatique, des justificatifs fournis et des validations des organismes compétents (ANAH, délégataire CEE). Les montants de cette simulation sont destinés aux professionnels, sont donnés à titre indicatif et n’engagent pas NIBE France. Ces informations peuvent être sujettes à modifications ; la version actuelle est au <strong>1er janvier 2026</strong>. Les montants CEE affichés correspondent à des montants approximatifs issus du « MaPrimeRénov’ — mode d’emploi » (ANAH / France Rénov’) et sont donnés à titre indicatif. Les CEE étant des offres de fournisseurs, il est recommandé de comparer les montants proposés par différents obligés. Les prix des CEE varient d’un obligé à l’autre, donc les montants présentés sont des estimations et n’engagent pas la société NIBE.</p>
         <p>Le remplacement est étudié comme un monogeste (chaudière gaz/fioul vers pompe à chaleur géothermique NIBE). Les tarifs énergétiques utilisés par défaut sont : gaz naturel 0,1284 €/kWh, fioul 1,16 €/L, propane 0,243 €/kWh, électricité 0,20 €/kWh. Ces valeurs peuvent varier et doivent être confirmées lors du projet.</p>
         <p>Le dossier de demande de subvention doit être déposé avant le début des travaux et l’installation doit être réalisée par une entreprise certifiée RGE.</p>
       </div>
@@ -680,16 +680,18 @@
   <script>
     const revenusBarème = {
       nonIDF: {
-        tres: [17173, 25115, 30206, 35285, 40388],
-        modeste: [22015, 32197, 38719, 45234, 51775],
-        inter: [30844, 45340, 54592, 63844, 73098],
-        supInc: { tres: 5094, modeste: 6525, inter: 9254 }
+        // Plafonds de ressources des autres territoires au 1er janvier 2026 (MaPrimeRénov’ — mode d’emploi)
+        tres: [17363, 25393, 30540, 35676, 40835],
+        modeste: [22259, 32553, 39148, 45735, 52348],
+        inter: [31185, 45842, 55196, 64550, 73907],
+        supInc: { tres: 5151, modeste: 6598, inter: 9357 }
       },
       IDF: {
-        tres: [23768, 34884, 41893, 48914, 55961],
-        modeste: [28933, 42463, 51000, 59549, 68123],
-        inter: [40404, 59394, 71060, 83637, 95758],
-        supInc: { tres: 7038, modeste: 8568, inter: 12122 }
+        // Plafonds de ressources en Île-de-France au 1er janvier 2026 (MaPrimeRénov’ — mode d’emploi)
+        tres: [24031, 35270, 42357, 49455, 56580],
+        modeste: [29253, 42933, 51564, 60208, 68877],
+        inter: [40851, 60051, 71846, 84562, 96817],
+        supInc: { tres: 7116, modeste: 8663, inter: 12257 }
       }
     };
 
@@ -893,6 +895,14 @@
       rangeSelect.appendChild(opt3);
     }
 
+    // CEE indicatifs (source : "MaPrimeRénov’ — Mode d’emploi", ANAH / France Rénov’)
+    // Le document précise que ces montants sont indicatifs et qu’il faut comparer les offres CEE des fournisseurs.
+    // Ici : géothermie (PAC géothermique ou solarothermique) = 5 000 € (montant approximatif CEE).
+    function getCeeIndicatifAnah(typePac) {
+      // On se concentre uniquement sur la géothermie dans cet outil
+      return 5000;
+    }
+
     function calculAides() {
       const type = state.typePac;
       const mode = state.modele;
@@ -922,15 +932,7 @@
       } else {
         categorie = determineCategorie(revenu, foyers, isIDF);
       }
-      let tarifMwh;
-      if (categorie === 'tres-modeste') {
-        tarifMwh = 8.26;
-      } else if (categorie === 'modeste' || categorie === 'intermediaire') {
-        tarifMwh = 7.02;
-      } else {
-        tarifMwh = 0;
-      }
-      const primeCEE = mwhCumac * tarifMwh;
+      const primeCEE = getCeeIndicatifAnah(type);
       let primeMPR;
       if (categorie === 'tres-modeste') primeMPR = 11000;
       else if (categorie === 'modeste') primeMPR = 9000;
